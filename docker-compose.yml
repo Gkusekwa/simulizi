@@ -31,9 +31,12 @@ services:
       # provider (Brevo/Resend, chosen in sprint 1) to send to readers.
       SMTP_URL: smtp://${SMTP_HOST:-mailpit}:${SMTP_PORT:-1025}
       MAIL_FROM: ${SMTP_FROM:-Simulizi <no-reply@simulizi.tzcom.cloud>}
-      # Admin bootstrap: promote or create this account as admin on boot. Empty = off.
+      # Seeded accounts: promote or create on boot. Empty email = off. The
+      # password is only used when the account does not exist yet.
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      MODERATOR_EMAIL: ${MODERATOR_EMAIL:-}
+      MODERATOR_PASSWORD: ${MODERATOR_PASSWORD:-}
     networks:
       - default
       - nasinfra
