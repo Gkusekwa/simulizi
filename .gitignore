@@ -6,3 +6,6 @@ docs/
 .DS_Store
 build/
 node_modules/
+
+# design mockups (static HTML exports); not part of the deployable repo
+mockups/
