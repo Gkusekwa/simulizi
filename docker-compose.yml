@@ -1,0 +1,5 @@
+# Simulizi -- Docker stack for the NAS.
+# Empty for now: no code yet (see README.md). Services are added here as they exist.
+# Shared Postgres/Redis/MinIO/RabbitMQ come from the external `nasinfra` network.
+
+services: {}
