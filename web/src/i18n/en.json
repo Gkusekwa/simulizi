@@ -42,7 +42,9 @@
     "scheduled": "Out {{when}}",
     "status": { "draft": "Draft", "ongoing": "Ongoing", "completed": "Completed", "hiatus": "On hiatus" },
     "rating": { "general": "General", "teen": "Teen 13+", "mature": "Mature 18+" },
-    "kind": { "single": "Single", "series": "Series" },
+    "kind": { "poem": "Poem", "poem_collection": "Poetry collection", "book": "Book", "book_collection": "Book collection" },
+    "volume": "Book {{n}}",
+    "hasAudio": "Has audio",
     "plan": { "all_at_once": "All at once", "daily": "Daily", "weekly": "Weekly", "manual": "Writer publishes" },
     "locked": "Sign in to read this part",
     "ratingCount": "{{count}} ratings",
@@ -68,6 +70,9 @@
     "finished": "You finished this part",
     "stanzas": "{{count}} stanzas",
     "accountRequired": "This part needs an account",
+    "listen": "Listen to this part",
+    "audioHint": "Narrated by the writer. Read and listen together, or save it for later.",
+    "audioUnavailable": "Audio is unavailable right now.",
     "accountRequiredHint": "The writer set this work for signed-in readers. It is free; sign in or create an account."
   },
   "library": {
@@ -133,6 +138,11 @@
     "republish": "Republish",
     "edit": "Edit",
     "write": "Write",
+    "kindHint": { "poem": "A single poem: exactly one part.", "poem_collection": "Many poems, each its own part.", "book": "One book with chapters. Every chapter can carry audio.", "book_collection": "Several books inside one work; name the books below and assign chapters to them." },
+    "volumes": "Books in the collection",
+    "volumesHint": "One title per line, in order. Chapters are placed in a book by number.",
+    "volume": "Book",
+    "audio": { "title": "Audio for this part", "hint": "MP3, M4A/AAC, OGG or WAV, up to 400 MB. Readers can listen while they read.", "upload": "Upload audio", "replace": "Replace audio", "remove": "Remove audio", "busy": "Uploading audio…", "attached": "Audio attached ({{size}})", "none": "No audio yet", "notBook": "Audio is only available on books." },
     "editor": {
       "autosaved": "Saved {{time}}",
       "saving": "Saving…",

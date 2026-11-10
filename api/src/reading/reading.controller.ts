@@ -92,6 +92,13 @@ export class ReadingController {
     return this.reading.part(slug, position, u?.id, anonId?.slice(0, 64));
   }
 
+  @Public()
+  @ApiOperation({ summary: 'Narration of a part: a one-hour URL on the public object storage (same access rules as the text)' })
+  @Get('works/:slug/parts/:position/audio')
+  audio(@CurrentUser() u: AuthUser | undefined, @Param('slug') slug: string, @Param('position', ParseIntPipe) position: number) {
+    return this.reading.audioUrl(slug, position, u?.id);
+  }
+
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Follow a work' })
   @Put('works/:slug/follow')

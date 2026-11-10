@@ -5,6 +5,9 @@ export type WorkStatus = 'draft' | 'ongoing' | 'completed' | 'hiatus';
 export type ContentRating = 'general' | 'teen' | 'mature';
 export type PartKind = 'chapter' | 'poem' | 'essay';
 export type WorkAccess = 'public' | 'preview' | 'members';
+export type WorkKind = 'poem' | 'poem_collection' | 'book' | 'book_collection';
+export const POEM_KINDS: WorkKind[] = ['poem', 'poem_collection'];
+export const BOOK_KINDS: WorkKind[] = ['book', 'book_collection'];
 
 export interface Me {
   id: string;
@@ -30,7 +33,8 @@ export interface WorkCard {
   title: string;
   synopsis: string;
   language: Language;
-  kind: 'single' | 'series';
+  kind: WorkKind;
+  volumes: string[];
   genre: string | null;
   tags: string[];
   rating: ContentRating;
@@ -60,6 +64,9 @@ export interface PartSummary {
   publicAt: string | null;
   releasedAt: string | null;
   updatedAt: string;
+  volume: number;
+  audioSeconds: number | null;
+  audioMime: string | null;
 }
 
 export interface Progress {
@@ -83,8 +90,9 @@ export interface WorkPage extends WorkCard {
 }
 
 export interface PartPage {
-  work: { id: string; slug: string; title: string; rating: ContentRating; language: Language; owner: { handle: string; displayName: string } };
+  work: { id: string; slug: string; title: string; kind: WorkKind; rating: ContentRating; language: Language; owner: { handle: string; displayName: string } };
   part: PartSummary & { bodyHtml: string };
+  audio: { seconds: number | null; mime: string | null } | null;
   prev: { position: number; title: string } | null;
   next: { position: number; title: string; state: PartState; publicAt: string | null } | null;
   progress: Progress | null;
@@ -110,6 +118,8 @@ export interface StudioWork extends Omit<WorkCard, 'owner' | '_count'> {
 }
 
 export interface StudioPart extends PartSummary {
+  audioKey: string | null;
+  audioBytes: number | null;
   draftJson: unknown | null;
   bodyJson: unknown | null;
   bodyHtml: string;

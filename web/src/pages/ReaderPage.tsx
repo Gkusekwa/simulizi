@@ -79,6 +79,13 @@ export function ReaderPage() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['part', slug, position] }),
   });
 
+  const audioQ = useQuery({
+    queryKey: ['audio', slug, position],
+    queryFn: () => api<{ url: string; mime: string | null }>(`/works/${slug}/parts/${position}/audio`),
+    enabled: !!q.data?.audio,
+    staleTime: 50 * 60 * 1000,
+  });
+
   if (q.isLoading) return <p className="muted">{t('common.loading')}</p>;
   if (q.error) {
     const e = q.error as ApiError;
@@ -115,6 +122,21 @@ export function ReaderPage() {
           <Icon name="type" />
         </button>
       </div>
+
+      {q.data!.audio && (
+        <div className="card" style={{ margin: '0 0 18px', padding: 12 }}>
+          <p className="muted" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}><Icon name="headphones" size={16} /> {t('reader.listen')}</p>
+          {audioQ.data ? (
+            // eslint-disable-next-line jsx-a11y/media-has-caption
+            <audio controls preload="metadata" src={audioQ.data.url} style={{ width: '100%' }} />
+          ) : audioQ.error ? (
+            <p className="muted">{t('reader.audioUnavailable')}</p>
+          ) : (
+            <p className="muted">{t('common.loading')}</p>
+          )}
+          <p className="muted" style={{ marginTop: 6, fontSize: 12 }}>{t('reader.audioHint')}</p>
+        </div>
+      )}
 
       <div ref={bodyRef} className="chapter" lang={work.language} dangerouslySetInnerHTML={{ __html: part.bodyHtml }} />
 

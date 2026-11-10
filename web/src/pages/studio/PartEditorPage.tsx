@@ -4,7 +4,9 @@ import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api, ApiError } from '../../api/client';
 import type { StudioPart } from '../../api/types';
+import { AudioUpload } from '../../components/AudioUpload';
 import { Icon } from '../../components/Icon';
+import { BOOK_KINDS } from '../../api/types';
 import { formatWhen } from '../../lib/format';
 
 /** ProseMirror doc -> plain text the textarea can edit (doc 14 §7 subset). */
@@ -118,6 +120,15 @@ export function PartEditorPage() {
           <Icon name="check" size={14} /> {t('studio.editor.publishChanges')} {p.version > 0 ? `(v${p.version + 1})` : ''}
         </button>
       </div>
+      {BOOK_KINDS.includes(p.work.kind) && (
+        <AudioUpload
+          part={p}
+          onDone={(next) => {
+            qc.setQueryData(['studio', 'part', id], (old: StudioPart | undefined) => (old ? { ...old, ...next, work: old.work } : next));
+            void qc.invalidateQueries({ queryKey: ['studio', 'work'] });
+          }}
+        />
+      )}
     </>
   );
 }

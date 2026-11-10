@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { partSummary } from '../works/works.service';
 import { CommentDto, ProgressDto } from './dto/reading.dto';
 import { WorkSocialService } from './work-social.service';
+import { StorageService } from '../storage/storage.service';
 
 const workCard = {
   id: true,
@@ -19,6 +20,7 @@ const workCard = {
   status: true,
   access: true,
   previewParts: true,
+  volumes: true,
   coverKey: true,
   releasePlan: true,
   releaseTime: true,
@@ -40,6 +42,7 @@ export class ReadingService {
     private readonly prisma: PrismaService,
     private readonly moderation: ModerationService,
     private readonly social: WorkSocialService,
+    private readonly storage: StorageService,
   ) {}
 
   /** Signed-out readers must not see Mature works; signed-in only if opted in. */
@@ -130,16 +133,17 @@ export class ReadingService {
     return false;
   }
 
-  async part(slug: string, position: number, userId?: string, anonId?: string) {
+  /** The work and part a reader may open, after the access, state and rating checks. */
+  private async readable(slug: string, position: number, userId?: string) {
     const work = await this.prisma.work.findFirst({
       where: { slug, deletedAt: null },
-      select: { id: true, ownerId: true, title: true, slug: true, rating: true, language: true, access: true, previewParts: true, owner: { select: { handle: true, displayName: true } } },
+      select: { id: true, ownerId: true, title: true, slug: true, kind: true, volumes: true, rating: true, language: true, access: true, previewParts: true, owner: { select: { handle: true, displayName: true } } },
     });
     if (!work) throw new NotFoundException('No such work');
     // bodyJson is for the app's native renderer; the web uses bodyHtml.
     const part = await this.prisma.part.findUnique({
       where: { workId_position: { workId: work.id, position } },
-      select: { ...partSummary, bodyHtml: true, bodyJson: true },
+      select: { ...partSummary, bodyHtml: true, bodyJson: true, audioKey: true },
     });
     const isOwner = work.ownerId === userId;
     if (!part || (part.state !== 'public' && !isOwner)) {
@@ -157,6 +161,13 @@ export class ReadingService {
         : false;
       if (!ok) throw new ForbiddenException('Mature work: sign in and opt in');
     }
+    return { work, part, isOwner };
+  }
+
+  async part(slug: string, position: number, userId?: string, anonId?: string) {
+    const { work: fullWork, part: fullPart, isOwner } = await this.readable(slug, position, userId);
+    const { volumes: _v, ...work } = fullWork;
+    const { audioKey, ...part } = fullPart;
     const [prev, next] = await Promise.all([
       this.prisma.part.findFirst({
         where: { workId: work.id, position: { lt: position }, state: 'public' },
@@ -176,7 +187,17 @@ export class ReadingService {
       ? !!(await this.prisma.like.findUnique({ where: { userId_partId: { userId, partId: part.id } } }))
       : false;
     if (part.state === 'public' && !isOwner) await this.countRead(part.id, userId, anonId);
-    return { work, part, prev, next, progress, liked };
+    const audio = audioKey ? { seconds: part.audioSeconds, mime: part.audioMime } : null;
+    return { work, part, prev, next, progress, liked, audio };
+  }
+
+  /** A short-lived URL for the part's narration; same access rules as the text. */
+  async audioUrl(slug: string, position: number, userId?: string) {
+    const { part } = await this.readable(slug, position, userId);
+    if (!part.audioKey) throw new NotFoundException('This part has no audio');
+    const seconds = 3600;
+    const url = await this.storage.presignGet(part.audioKey, part.audioMime ?? undefined, seconds);
+    return { url, mime: part.audioMime, seconds: part.audioSeconds, expiresAt: new Date(Date.now() + seconds * 1000).toISOString() };
   }
 
   /** One read per reader per part per day (doc 16). Opted-out readers count anonymously by date only. */

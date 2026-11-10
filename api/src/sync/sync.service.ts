@@ -27,6 +27,7 @@ export class SyncService {
             synopsis: true,
             language: true,
             kind: true,
+            volumes: true,
             status: true,
             access: true,
             previewParts: true,

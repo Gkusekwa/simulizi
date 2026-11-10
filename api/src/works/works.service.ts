@@ -5,12 +5,14 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Part, PartState, Prisma, Work } from '@prisma/client';
+import { Part, PartState, Prisma, Work, WorkKind } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { docFromText, poemFromText, PMNode, readMinutes, render } from '../content/prosemirror';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreatePartDto, CreateWorkDto, MovePartDto, SaveDraftDto, UpdateWorkDto } from './dto/work.dto';
+import { CreatePartDto, CreateWorkDto, MovePartDto, SaveDraftDto, UpdatePartDto, UpdateWorkDto } from './dto/work.dto';
+import { StorageService } from '../storage/storage.service';
+import * as fs from 'node:fs/promises';
 import { nextSlots } from './release/slots';
 
 /** States that count as "released" for the gap rule (doc 14 §2). */
@@ -30,7 +32,16 @@ export const partSummary = {
   publicAt: true,
   releasedAt: true,
   updatedAt: true,
+  volume: true,
+  audioSeconds: true,
+  audioMime: true,
 } satisfies Prisma.PartSelect;
+
+/** Kinds whose parts are poems. */
+export const POEM_KINDS: WorkKind[] = ['poem', 'poem_collection'];
+/** Kinds that may carry audio narration. */
+export const BOOK_KINDS: WorkKind[] = ['book', 'book_collection'];
+const AUDIO_MIME = new Set(['audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/x-m4a', 'audio/aac', 'audio/ogg', 'audio/webm', 'audio/wav', 'audio/x-wav', 'audio/flac']);
 
 @Injectable()
 export class WorksService {
@@ -39,12 +50,14 @@ export class WorksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly storage: StorageService,
   ) {}
 
   // ------------------------------------------------------------------ works
 
   async create(ownerId: string, dto: CreateWorkDto) {
     const slug = await this.uniqueSlug(dto.title);
+    const kind = dto.kind ?? 'book';
     return this.prisma.work.create({
       data: {
         ownerId,
@@ -52,7 +65,8 @@ export class WorksService {
         title: dto.title.trim(),
         synopsis: dto.synopsis?.trim() ?? '',
         language: dto.language,
-        kind: dto.kind ?? 'series',
+        kind,
+        volumes: kind === 'book_collection' ? (dto.volumes ?? []).map((v) => v.trim()).filter(Boolean) : [],
         genre: dto.genre,
         tags: dto.tags ?? [],
         rating: dto.rating ?? 'general',
@@ -96,7 +110,25 @@ export class WorksService {
         throw new BadRequestException('Language can only change while no part is public');
       }
     }
-    const updated = await this.prisma.work.update({ where: { id: workId }, data: dto });
+    const data: Prisma.WorkUpdateInput = { ...dto };
+    const kind = dto.kind ?? work.kind;
+    if (dto.kind && dto.kind !== work.kind) {
+      const [partCount, withAudio] = await Promise.all([
+        this.prisma.part.count({ where: { workId } }),
+        this.prisma.part.count({ where: { workId, audioKey: { not: null } } }),
+      ]);
+      if (dto.kind === 'poem' && partCount > 1) throw new BadRequestException('A single poem has one part; make it a poem collection or delete the extra parts');
+      if (POEM_KINDS.includes(dto.kind) && withAudio > 0) throw new BadRequestException('Remove the audio from its parts before turning this into a poem');
+      if (POEM_KINDS.includes(dto.kind)) await this.prisma.part.updateMany({ where: { workId }, data: { kind: 'poem' } });
+      else await this.prisma.part.updateMany({ where: { workId, kind: 'poem' }, data: { kind: 'chapter' } });
+    }
+    if (kind !== 'book_collection') {
+      data.volumes = [];
+      await this.prisma.part.updateMany({ where: { workId, volume: { not: 1 } }, data: { volume: 1 } });
+    } else if (dto.volumes) {
+      data.volumes = dto.volumes.map((v) => v.trim()).filter(Boolean);
+    }
+    await this.prisma.work.update({ where: { id: workId }, data });
     await this.recomputeSchedule(workId);
     return this.getMine(ownerId, workId);
   }
@@ -112,13 +144,18 @@ export class WorksService {
 
   async createPart(ownerId: string, workId: string, dto: CreatePartDto) {
     const work = await this.owned(ownerId, workId);
-    const last = await this.prisma.part.aggregate({ where: { workId }, _max: { position: true } });
+    const last = await this.prisma.part.aggregate({ where: { workId }, _max: { position: true }, _count: true });
+    if (work.kind === 'poem' && last._count > 0) {
+      throw new BadRequestException('A single poem has exactly one part; change the work to a poem collection to add more');
+    }
+    const poem = POEM_KINDS.includes(work.kind);
     return this.prisma.part.create({
       data: {
         workId: work.id,
         position: (last._max.position ?? 0) + 1,
         title: dto.title.trim(),
-        kind: dto.kind ?? 'chapter',
+        kind: poem ? 'poem' : dto.kind && dto.kind !== 'poem' ? dto.kind : 'chapter',
+        volume: work.kind === 'book_collection' ? Math.min(dto.volume ?? 1, Math.max(1, work.volumes.length)) : 1,
       },
       select: partSummary,
     });
@@ -127,6 +164,54 @@ export class WorksService {
   async getPart(ownerId: string, partId: string) {
     const part = await this.ownedPart(ownerId, partId);
     return part;
+  }
+
+  async updatePart(ownerId: string, partId: string, dto: UpdatePartDto) {
+    const part = await this.ownedPart(ownerId, partId);
+    const poem = POEM_KINDS.includes(part.work.kind);
+    const data: Prisma.PartUpdateInput = {};
+    if (dto.title) data.title = dto.title.trim();
+    if (dto.kind) data.kind = poem ? 'poem' : dto.kind === 'poem' ? 'chapter' : dto.kind;
+    if (dto.volume !== undefined) {
+      data.volume = part.work.kind === 'book_collection' ? Math.min(dto.volume, Math.max(1, part.work.volumes.length)) : 1;
+    }
+    await this.prisma.part.update({ where: { id: partId }, data });
+    return this.ownedPart(ownerId, partId);
+  }
+
+  // ------------------------------------------------------------------ audio
+
+  /** Attach (or replace) the narration of a book part. The file is a multer temp file on disk. */
+  async setAudio(ownerId: string, partId: string, file: Express.Multer.File | undefined, seconds?: number) {
+    if (!file) throw new BadRequestException('Attach an audio file in the "file" field');
+    const cleanup = () => fs.unlink(file.path).catch(() => undefined);
+    try {
+      const part = await this.ownedPart(ownerId, partId);
+      if (!BOOK_KINDS.includes(part.work.kind)) throw new BadRequestException('Audio can only be attached to the parts of a book');
+      const mime = (file.mimetype || '').split(';')[0].toLowerCase();
+      if (!AUDIO_MIME.has(mime)) throw new BadRequestException(`Unsupported audio type ${mime || '(unknown)'}; use MP3, M4A/AAC, OGG or WAV`);
+      const ext = mime.includes('mpeg') || mime.includes('mp3') ? 'mp3' : mime.includes('mp4') || mime.includes('m4a') || mime.includes('aac') ? 'm4a' : mime.includes('ogg') ? 'ogg' : mime.includes('webm') ? 'webm' : mime.includes('flac') ? 'flac' : 'wav';
+      const key = `audio/${part.workId}/${partId}-${Date.now().toString(36)}.${ext}`;
+      await this.storage.putFile(key, file.path, mime);
+      const previous = (await this.prisma.part.findUnique({ where: { id: partId }, select: { audioKey: true } }))?.audioKey;
+      await this.prisma.part.update({
+        where: { id: partId },
+        data: { audioKey: key, audioMime: mime, audioBytes: file.size, audioSeconds: seconds ?? null },
+      });
+      if (previous && previous !== key) await this.storage.delete(previous);
+      this.logger.log(`audio for part ${partId}: ${key} (${file.size} bytes)`);
+      return this.ownedPart(ownerId, partId);
+    } finally {
+      await cleanup();
+    }
+  }
+
+  async removeAudio(ownerId: string, partId: string) {
+    await this.ownedPart(ownerId, partId);
+    const current = await this.prisma.part.findUnique({ where: { id: partId }, select: { audioKey: true } });
+    await this.prisma.part.update({ where: { id: partId }, data: { audioKey: null, audioMime: null, audioBytes: null, audioSeconds: null } });
+    if (current?.audioKey) await this.storage.delete(current.audioKey);
+    return this.ownedPart(ownerId, partId);
   }
 
   /** Autosave target. Never touches what readers see. */

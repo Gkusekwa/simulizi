@@ -4,13 +4,17 @@ import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nes
 import { Language } from '@prisma/client';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { RawResponse } from '../common/response.interceptor';
-import { CreatePartDto, CreateWorkDto, MovePartDto, SaveDraftDto, UpdateWorkDto } from './dto/work.dto';
+import { AudioMetaDto, CreatePartDto, CreateWorkDto, MovePartDto, SaveDraftDto, UpdatePartDto, UpdateWorkDto } from './dto/work.dto';
+import { diskStorage } from 'multer';
+import { tmpdir } from 'node:os';
 import { ExportService } from './export.service';
 import { ImportService } from './import.service';
 import { StatsService } from './stats.service';
 import { WorksService } from './works.service';
 
 const upload = FileInterceptor('file', { limits: { fileSize: 25 * 1024 * 1024, files: 1 } });
+// Audio is spooled to disk and streamed to object storage; never held in memory.
+const audioUpload = FileInterceptor('file', { storage: diskStorage({ destination: tmpdir() }), limits: { fileSize: 400 * 1024 * 1024, files: 1 } });
 
 /** Writer studio endpoints. Everything here is owner-only. */
 @ApiTags('studio')
@@ -72,7 +76,7 @@ export class WorksController {
     return this.works.listMine(u.id);
   }
 
-  @ApiOperation({ summary: 'Create a work (single or series)' })
+  @ApiOperation({ summary: 'Create a work (poem, poem collection, book or book collection)' })
   @Post('works')
   create(@CurrentUser() u: AuthUser, @Body() dto: CreateWorkDto) {
     return this.works.create(u.id, dto);
@@ -112,6 +116,27 @@ export class WorksController {
   @Get('parts/:id')
   getPart(@CurrentUser() u: AuthUser, @Param('id') id: string) {
     return this.works.getPart(u.id, id);
+  }
+
+  @ApiOperation({ summary: 'Rename a part, change its kind or move it to another volume' })
+  @Patch('parts/:id')
+  updatePart(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() dto: UpdatePartDto) {
+    return this.works.updatePart(u.id, id, dto);
+  }
+
+  @ApiOperation({ summary: 'Attach or replace the audio narration of a book part (MP3, M4A/AAC, OGG, WAV; up to 400 MB)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' }, seconds: { type: 'integer' } } } })
+  @UseInterceptors(audioUpload)
+  @Put('parts/:id/audio')
+  setAudio(@CurrentUser() u: AuthUser, @Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined, @Body() meta: AudioMetaDto) {
+    return this.works.setAudio(u.id, id, file, meta.seconds);
+  }
+
+  @ApiOperation({ summary: 'Remove the audio narration of a part' })
+  @Delete('parts/:id/audio')
+  removeAudio(@CurrentUser() u: AuthUser, @Param('id') id: string) {
+    return this.works.removeAudio(u.id, id);
   }
 
   @ApiOperation({ summary: 'Autosave the working copy' })

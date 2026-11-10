@@ -34,9 +34,15 @@ enum Language {
   en
 }
 
+// What a work is (owner's choice). Poems hold poem parts: a `poem` has exactly
+// one, a `poem_collection` many. Books hold chapters: a `book` is one volume,
+// a `book_collection` groups chapters into volumes (Work.volumes). Audio
+// narration can be attached to the parts of either book kind.
 enum WorkKind {
-  single
-  series
+  poem
+  poem_collection
+  book
+  book_collection
 }
 
 enum WorkStatus {
@@ -248,7 +254,9 @@ model Work {
   title     String
   synopsis  String        @default("")
   language  Language
-  kind      WorkKind      @default(series)
+  kind      WorkKind      @default(book)
+  // Volume titles of a book_collection, 1-based by index (Part.volume).
+  volumes   String[]      @default([])
   genre     String?
   tags      String[]      @default([])
   rating    ContentRating @default(general)
@@ -303,6 +311,13 @@ model Part {
   readMinutes Int     @default(0)
   version   Int       @default(0)
   publicAt  DateTime?
+  // Volume (book) number inside a book_collection; always 1 otherwise.
+  volume    Int       @default(1)
+  // Optional narration (book kinds only), an object in the RustFS bucket.
+  audioKey     String?
+  audioMime    String?
+  audioBytes   Int?
+  audioSeconds Int?
   // Set by the sweep when a scheduled part actually went public.
   releasedAt DateTime?
   removedAt  DateTime?

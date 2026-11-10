@@ -13,6 +13,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { ModerationModule } from './moderation/moderation.module';
 import { AdminModule } from './admin/admin.module';
 import { SyncModule } from './sync/sync.module';
+import { StorageModule } from './storage/storage.module';
 import { HealthController } from './health/health.controller';
 import { ResponseInterceptor } from './common/response.interceptor';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
@@ -25,6 +26,7 @@ import { validateEnv } from './config/env.validation';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     ScheduleModule.forRoot(),
     PrismaModule,
+    StorageModule,
     NotificationsModule,
     AuthModule,
     UsersModule,

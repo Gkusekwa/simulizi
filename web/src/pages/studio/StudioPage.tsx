@@ -3,7 +3,7 @@ import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api, ApiError } from '../../api/client';
-import type { Language, StudioWork } from '../../api/types';
+import type { Language, StudioWork, WorkKind } from '../../api/types';
 import { EpubUpload } from '../../components/EpubUpload';
 import { Icon } from '../../components/Icon';
 import { Cover } from '../../components/WorkRow';
@@ -14,7 +14,7 @@ export function StudioPage() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['studio', 'works'], queryFn: () => api<StudioWork[]>('/studio/works') });
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ title: '', language: (i18n.language === 'en' ? 'en' : 'sw') as Language, kind: 'series' as 'series' | 'single', rating: 'general' as 'general' | 'teen' | 'mature' });
+  const [form, setForm] = useState({ title: '', language: (i18n.language === 'en' ? 'en' : 'sw') as Language, kind: 'book' as WorkKind, rating: 'general' as 'general' | 'teen' | 'mature' });
   const create = useMutation({
     mutationFn: () => api<StudioWork>('/studio/works', { method: 'POST', json: form }),
     onSuccess: (w) => {
@@ -52,9 +52,8 @@ export function StudioPage() {
             </div>
             <div>
               <label className="field-label" htmlFor="kind">{t('studio.kind')}</label>
-              <select className="field" id="kind" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as 'series' | 'single' })}>
-                <option value="series">{t('work.kind.series')}</option>
-                <option value="single">{t('work.kind.single')}</option>
+              <select className="field" id="kind" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as WorkKind })}>
+                {(['book', 'book_collection', 'poem', 'poem_collection'] as WorkKind[]).map((k) => <option key={k} value={k}>{t('work.kind.' + k)}</option>)}
               </select>
             </div>
             <div>
@@ -66,6 +65,7 @@ export function StudioPage() {
               </select>
             </div>
           </div>
+          <p className="muted" style={{ marginTop: 6 }}>{t('studio.kindHint.' + form.kind)}</p>
           {create.error && <p className="form-error">{(create.error as ApiError).message}</p>}
           <div className="actions">
             <button className="btn primary" type="submit" disabled={create.isPending}>{t('common.save')}</button>

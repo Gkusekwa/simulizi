@@ -110,35 +110,45 @@ export function WorkPage() {
           {t('work.released', { public: publicParts.length, total: w.parts.length })} · {t('work.plan.' + w.releasePlan)}
         </span>
       </div>
-      {w.parts.map((p) => {
+      {w.parts.map((p, idx) => {
         const done = p.progress?.finished;
+        const volumeHead = w.kind === 'book_collection' && (idx === 0 || w.parts[idx - 1].volume !== p.volume)
+          ? <p className="eyebrow" key={`v${p.volume}`} style={{ marginTop: 14 }}>{t('work.volume', { n: p.volume })}{w.volumes?.[p.volume - 1] ? ` · ${w.volumes[p.volume - 1]}` : ''}</p>
+          : null;
+        const audio = p.audioMime ? <span className="pill" title={t('work.hasAudio')} aria-label={t('work.hasAudio')}><Icon name="headphones" size={12} /></span> : null;
         if (p.state !== 'public') {
           return (
-            <div className="part-row" key={p.id} style={{ color: 'var(--muted)' }}>
+            <div key={p.id}>{volumeHead}
+            <div className="part-row" style={{ color: 'var(--muted)' }}>
               <div style={{ flex: 1 }}>
                 <h3>{p.position}. {p.title}</h3>
                 <small><Icon name="clock" size={14} /> {t('work.scheduled', { when: formatWhen(p.publicAt) })}</small>
               </div>
             </div>
+            </div>
           );
         }
         if (p.locked) {
           return (
-            <Link className="part-row" key={p.id} to="/login" state={{ from: `/w/${slug}/${p.position}` }} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div key={p.id}>{volumeHead}
+            <Link className="part-row" to="/login" state={{ from: `/w/${slug}/${p.position}` }} style={{ textDecoration: 'none', color: 'inherit' }}>
               <div style={{ flex: 1 }}>
                 <h3>{p.position}. {p.title}</h3>
                 <small><Icon name="lock" size={14} /> {t('work.locked')}</small>
               </div>
               <span className="pill">{t('nav.signin')}</span>
             </Link>
+            </div>
           );
         }
         return (
-          <Link className="part-row" key={p.id} to={`/w/${slug}/${p.position}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+          <div key={p.id}>{volumeHead}
+          <Link className="part-row" to={`/w/${slug}/${p.position}`} style={{ textDecoration: 'none', color: 'inherit' }}>
             <div style={{ flex: 1 }}>
               <h3>{p.position}. {p.title}</h3>
               <small>{t('common.readMinutes', { count: p.readMinutes })}{p.likes !== undefined ? ` · ♡ ${count(p.likes)}` : ''}</small>
             </div>
+            {audio}
             {done ? (
               <span className="pill"><Icon name="check" size={14} /> {t('work.read')}</span>
             ) : p.progress ? (
@@ -146,6 +156,7 @@ export function WorkPage() {
             ) : null}
             <Icon name="chevron" className="chev" />
           </Link>
+          </div>
         );
       })}
 

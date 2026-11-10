@@ -3,7 +3,7 @@
 # Storage: Postgres and RustFS are centrally managed by the `infrastructure`
 # stack (repo nasinfra) and reached over the external `nasinfra` network:
 #   - database: role + database `simulizi` in the shared Postgres 18
-#   - media:    bucket `simulizi` in the shared RustFS (S3 at minio:9000) -- phase 1b
+#   - media:    bucket `simulizi` in the shared RustFS (S3 at minio:9000): audio narration
 #   - jobs:     the release sweep runs inside the API (one process, one minute)
 #
 # Ports (see .claude/CLAUDE.md port map): web 3008 -> simulizi.tzcom.cloud,
@@ -37,6 +37,18 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       MODERATOR_EMAIL: ${MODERATOR_EMAIL:-}
       MODERATOR_PASSWORD: ${MODERATOR_PASSWORD:-}
+      # Media (audio narration) in the shared RustFS bucket. Internal endpoint
+      # for uploads; readers get presigned URLs on the public endpoint.
+      S3_ENDPOINT: ${S3_ENDPOINT:-minio}
+      S3_PORT: ${S3_PORT:-9000}
+      S3_USE_SSL: ${S3_USE_SSL:-false}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
+      S3_BUCKET: ${S3_BUCKET:-simulizi}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-storage.tzcom.cloud}
+      S3_PUBLIC_PORT: ${S3_PUBLIC_PORT:-443}
+      S3_PUBLIC_USE_SSL: ${S3_PUBLIC_USE_SSL:-true}
     networks:
       - default
       - nasinfra

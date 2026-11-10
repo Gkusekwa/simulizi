@@ -41,7 +41,7 @@ export class ImportService {
       title: book.title,
       synopsis: book.description ?? undefined,
       language: this.language(book.language, opts.language ?? 'sw'),
-      kind: book.chapters.length > 1 ? 'series' : 'single',
+      kind: 'book',
     });
     const parts = await this.appendChapters(work.id, 0, book.chapters);
     this.logger.log(`imported "${book.title}": ${parts} part(s), ${book.skipped} skipped`);

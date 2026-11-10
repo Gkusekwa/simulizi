@@ -42,7 +42,9 @@
     "scheduled": "Inatoka {{when}}",
     "status": { "draft": "Rasimu", "ongoing": "Inaendelea", "completed": "Imekamilika", "hiatus": "Imesimama kwa muda" },
     "rating": { "general": "Kwa wote", "teen": "Vijana 13+", "mature": "Watu wazima 18+" },
-    "kind": { "single": "Kazi moja", "series": "Mfululizo" },
+    "kind": { "poem": "Shairi", "poem_collection": "Diwani", "book": "Kitabu", "book_collection": "Mkusanyiko wa vitabu" },
+    "volume": "Kitabu {{n}}",
+    "hasAudio": "Ina sauti",
     "plan": { "all_at_once": "Zote kwa pamoja", "daily": "Kila siku", "weekly": "Kila wiki", "manual": "Mwandishi achapishe" },
     "locked": "Ingia ili kusoma sehemu hii",
     "ratingCount": "tathmini {{count}}",
@@ -68,6 +70,9 @@
     "finished": "Umemaliza sehemu hii",
     "stanzas": "Beti {{count}}",
     "accountRequired": "Sehemu hii inahitaji akaunti",
+    "listen": "Sikiliza sehemu hii",
+    "audioHint": "Imesomwa kwa sauti na mwandishi. Soma na usikilize kwa pamoja au pakua kwa baadaye.",
+    "audioUnavailable": "Sauti haipatikani kwa sasa.",
     "accountRequiredHint": "Mwandishi ameweka kazi hii kwa wasomaji walioingia. Ni bure; ingia au fungua akaunti."
   },
   "library": {
@@ -133,6 +138,11 @@
     "republish": "Rudisha",
     "edit": "Hariri",
     "write": "Andika",
+    "kindHint": { "poem": "Shairi moja: sehemu moja tu.", "poem_collection": "Mashairi mengi, kila shairi sehemu yake.", "book": "Kitabu kimoja chenye sura. Kila sura inaweza kuwa na sauti.", "book_collection": "Vitabu kadhaa ndani ya kazi moja; weka majina ya vitabu hapa chini na upange sura katika vitabu." },
+    "volumes": "Vitabu vya mkusanyiko",
+    "volumesHint": "Jina moja kwa kila mstari, kwa mpangilio. Sura huwekwa katika kitabu kwa nambari.",
+    "volume": "Kitabu",
+    "audio": { "title": "Sauti ya sehemu hii", "hint": "MP3, M4A/AAC, OGG au WAV, hadi MB 400. Wasomaji wanaweza kusikiliza wakati wa kusoma.", "upload": "Pakia sauti", "replace": "Badilisha sauti", "remove": "Ondoa sauti", "busy": "Inapakia sauti…", "attached": "Sauti imeambatishwa ({{size}})", "none": "Hakuna sauti bado", "notBook": "Sauti inawezekana kwa vitabu tu." },
     "editor": {
       "autosaved": "Imehifadhiwa {{time}}",
       "saving": "Inahifadhi…",

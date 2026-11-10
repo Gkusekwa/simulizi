@@ -13,6 +13,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ContentRating, Language, PartKind, ReleasePlan, WorkAccess, WorkKind, WorkStatus } from '@prisma/client';
 
 export class CreateWorkDto {
@@ -29,7 +30,14 @@ export class CreateWorkDto {
   @ApiProperty() @IsString() @MinLength(1) @MaxLength(120) title!: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(1000) synopsis?: string;
   @ApiProperty({ enum: Language }) @IsEnum(Language) language!: Language;
-  @ApiPropertyOptional({ enum: WorkKind }) @IsOptional() @IsEnum(WorkKind) kind?: WorkKind;
+  @ApiPropertyOptional({ enum: WorkKind, description: 'poem | poem_collection | book | book_collection' }) @IsOptional() @IsEnum(WorkKind) kind?: WorkKind;
+  @ApiPropertyOptional({ type: [String], description: 'Volume (book) titles of a book_collection, in order' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  @MaxLength(120, { each: true })
+  volumes?: string[];
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(40) genre?: string;
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
@@ -46,7 +54,14 @@ export class UpdateWorkDto {
   @ApiPropertyOptional() @IsOptional() @IsString() @MinLength(1) @MaxLength(120) title?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(1000) synopsis?: string;
   @ApiPropertyOptional({ enum: Language }) @IsOptional() @IsEnum(Language) language?: Language;
-  @ApiPropertyOptional({ enum: WorkKind }) @IsOptional() @IsEnum(WorkKind) kind?: WorkKind;
+  @ApiPropertyOptional({ enum: WorkKind, description: 'poem | poem_collection | book | book_collection' }) @IsOptional() @IsEnum(WorkKind) kind?: WorkKind;
+  @ApiPropertyOptional({ type: [String], description: 'Volume (book) titles of a book_collection, in order' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  @MaxLength(120, { each: true })
+  volumes?: string[];
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(40) genre?: string;
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
@@ -75,6 +90,23 @@ export class UpdateWorkDto {
 export class CreatePartDto {
   @ApiProperty() @IsString() @MinLength(1) @MaxLength(160) title!: string;
   @ApiPropertyOptional({ enum: PartKind }) @IsOptional() @IsEnum(PartKind) kind?: PartKind;
+  @ApiPropertyOptional({ description: '1-based volume inside a book_collection' }) @IsOptional() @IsInt() @Min(1) @Max(50) volume?: number;
+}
+
+export class UpdatePartDto {
+  @ApiPropertyOptional() @IsOptional() @IsString() @MinLength(1) @MaxLength(160) title?: string;
+  @ApiPropertyOptional({ enum: PartKind }) @IsOptional() @IsEnum(PartKind) kind?: PartKind;
+  @ApiPropertyOptional({ description: '1-based volume inside a book_collection' }) @IsOptional() @IsInt() @Min(1) @Max(50) volume?: number;
+}
+
+export class AudioMetaDto {
+  @ApiPropertyOptional({ description: 'Duration in seconds, if the uploader knows it' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(24 * 3600)
+  seconds?: number;
 }
 
 export class SaveDraftDto {
