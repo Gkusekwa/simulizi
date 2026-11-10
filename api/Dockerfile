@@ -12,7 +12,8 @@ RUN npm ci
 COPY prisma ./prisma
 RUN npx prisma generate
 COPY . .
-RUN npm run build
+# Never trust an incremental-build cache that slipped into the context.
+RUN rm -f tsconfig.tsbuildinfo && npm run build && test -f dist/main.js
 
 # --- runtime stage ---
 FROM node:22-alpine AS runtime

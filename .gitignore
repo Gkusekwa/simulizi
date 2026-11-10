@@ -14,3 +14,4 @@ mockups/
 api/dist/
 web/dist/
 **/node_modules/
+*.tsbuildinfo
