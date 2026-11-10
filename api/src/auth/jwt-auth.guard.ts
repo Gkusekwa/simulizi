@@ -1,4 +1,4 @@
-import { ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import { ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import type { UserRole } from '@prisma/client';
@@ -51,7 +51,8 @@ export class JwtAuthGuard extends AuthGuard('jwt-access') {
     ]);
     if (err || !user) {
       if (isPublic) return undefined as TUser;
-      throw err ?? new ForbiddenException();
+      // No or bad token = 401 (the clients refresh or redirect on it); roles use 403.
+      throw err ?? new UnauthorizedException();
     }
     return user;
   }
