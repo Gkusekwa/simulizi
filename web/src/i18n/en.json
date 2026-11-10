@@ -144,6 +144,7 @@
       "version": "Version {{n}}",
       "liveNotice": "Readers see version {{n}}. Your edits go live when you press “Publish changes”."
     },
+    "upload": { "button": "Upload EPUB", "append": "Add chapters from EPUB", "busy": "Reading the book…", "hint": "An .epub becomes a new work: every chapter a draft part, ready to schedule." },
     "deleteWork": "Delete this work",
     "deleteConfirm": "This work and all its parts will be deleted. Continue?"
   },

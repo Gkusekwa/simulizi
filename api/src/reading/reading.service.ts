@@ -136,9 +136,10 @@ export class ReadingService {
       select: { id: true, ownerId: true, title: true, slug: true, rating: true, language: true, access: true, previewParts: true, owner: { select: { handle: true, displayName: true } } },
     });
     if (!work) throw new NotFoundException('No such work');
+    // bodyJson is for the app's native renderer; the web uses bodyHtml.
     const part = await this.prisma.part.findUnique({
       where: { workId_position: { workId: work.id, position } },
-      select: { ...partSummary, bodyHtml: true },
+      select: { ...partSummary, bodyHtml: true, bodyJson: true },
     });
     const isOwner = work.ownerId === userId;
     if (!part || (part.state !== 'public' && !isOwner)) {

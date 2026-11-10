@@ -1,11 +1,16 @@
-import { Body, Controller, Delete, Get, Header, Param, Patch, Post, Put } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Header, Param, Patch, Post, Put, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Language } from '@prisma/client';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { RawResponse } from '../common/response.interceptor';
 import { CreatePartDto, CreateWorkDto, MovePartDto, SaveDraftDto, UpdateWorkDto } from './dto/work.dto';
 import { ExportService } from './export.service';
+import { ImportService } from './import.service';
 import { StatsService } from './stats.service';
 import { WorksService } from './works.service';
+
+const upload = FileInterceptor('file', { limits: { fileSize: 25 * 1024 * 1024, files: 1 } });
 
 /** Writer studio endpoints. Everything here is owner-only. */
 @ApiTags('studio')
@@ -16,7 +21,26 @@ export class WorksController {
     private readonly works: WorksService,
     private readonly stats: StatsService,
     private readonly exporter: ExportService,
+    private readonly importer: ImportService,
   ) {}
+
+  @ApiOperation({ summary: 'Upload an EPUB: creates a work with one draft part per chapter' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } })
+  @UseInterceptors(upload)
+  @Post('works/import')
+  importWork(@CurrentUser() u: AuthUser, @UploadedFile() file: Express.Multer.File | undefined, @Query('language') language?: string) {
+    return this.importer.createWork(u.id, file, { language: language === 'en' || language === 'sw' ? (language as Language) : undefined });
+  }
+
+  @ApiOperation({ summary: 'Upload an EPUB: appends its chapters to this work as drafts' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } })
+  @UseInterceptors(upload)
+  @Post('works/:id/import')
+  importInto(@CurrentUser() u: AuthUser, @Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined) {
+    return this.importer.appendToWork(u.id, id, file);
+  }
 
   @ApiOperation({ summary: 'Reads, unique readers and followers for a work' })
   @Get('works/:id/stats')

@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api, ApiError } from '../../api/client';
 import type { PartKind, ReleasePlan, StudioWork, WorkAccess, WorkStatus } from '../../api/types';
+import { EpubUpload } from '../../components/EpubUpload';
 import { Icon } from '../../components/Icon';
 import { formatWhen } from '../../lib/format';
 
@@ -219,7 +220,10 @@ export function WorkEditorPage() {
 
       <div className="section-title">
         <h3>{t('studio.parts')}</h3>
-        <span className="muted">{parts.filter((p) => p.state === 'public').length} / {parts.length}</span>
+        <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <span className="muted">{parts.filter((p) => p.state === 'public').length} / {parts.length}</span>
+          <EpubUpload workId={id} onDone={() => refresh()} />
+        </span>
       </div>
       {parts.map((p, idx) => {
         const released = ['public', 'unpublished', 'removed'].includes(p.state);

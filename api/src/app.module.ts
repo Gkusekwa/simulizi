@@ -12,6 +12,7 @@ import { ReadingModule } from './reading/reading.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ModerationModule } from './moderation/moderation.module';
 import { AdminModule } from './admin/admin.module';
+import { SyncModule } from './sync/sync.module';
 import { HealthController } from './health/health.controller';
 import { ResponseInterceptor } from './common/response.interceptor';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
@@ -31,6 +32,7 @@ import { validateEnv } from './config/env.validation';
     ReadingModule,
     ModerationModule,
     AdminModule,
+    SyncModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -144,6 +144,7 @@
       "version": "Toleo {{n}}",
       "liveNotice": "Wasomaji wanaona toleo {{n}}. Mabadiliko yako yatatoka ukibonyeza “Chapisha mabadiliko”."
     },
+    "upload": { "button": "Pakia EPUB", "append": "Ongeza sura kutoka EPUB", "busy": "Inasoma kitabu…", "hint": "Kitabu cha .epub kinakuwa kazi mpya: kila sura inakuwa sehemu ya rasimu, tayari kupangwa." },
     "deleteWork": "Futa kazi hii",
     "deleteConfirm": "Kazi hii na sehemu zake zote zitafutwa. Endelea?"
   },

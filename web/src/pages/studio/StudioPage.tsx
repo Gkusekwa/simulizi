@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api, ApiError } from '../../api/client';
 import type { Language, StudioWork } from '../../api/types';
+import { EpubUpload } from '../../components/EpubUpload';
 import { Icon } from '../../components/Icon';
 import { Cover } from '../../components/WorkRow';
 
@@ -32,7 +33,10 @@ export function StudioPage() {
       <p className="eyebrow">{t('studio.title')}</p>
       <div className="section-title" style={{ marginTop: 0 }}>
         <h1>{t('studio.myWorks')}</h1>
-        <button className="btn primary small" type="button" onClick={() => setOpen((o) => !o)}><Icon name="plus" size={14} /> {t('studio.newWork')}</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <EpubUpload onDone={(w) => { void qc.invalidateQueries({ queryKey: ['studio', 'works'] }); nav(`/studio/works/${w.id}`); }} />
+          <button className="btn primary small" type="button" onClick={() => setOpen((o) => !o)}><Icon name="plus" size={14} /> {t('studio.newWork')}</button>
+        </div>
       </div>
       {open && (
         <form className="card" onSubmit={submit} style={{ marginBottom: 16 }}>
