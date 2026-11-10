@@ -125,6 +125,8 @@ textarea.field { min-height: 120px; resize: vertical; }
 .stats { display: flex; gap: 22px; margin-top: 14px; }
 .stats span { color: var(--muted); font-size: 12px; }
 .stats b { display: block; color: var(--ink); font-size: 14px; font-weight: 600; }
+.ic.star { fill: currentColor; }
+.rating { color: var(--gold); }
 .avatar { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-text); font: 500 17px var(--font-serif); }
 .avatar.lg { width: 68px; height: 68px; font-size: 25px; }
 

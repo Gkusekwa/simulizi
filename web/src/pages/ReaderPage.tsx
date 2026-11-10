@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api, ApiError } from '../api/client';
-import type { Comment, PartPage } from '../api/types';
+import type { PartPage } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
+import { Comments } from '../components/Comments';
 import { Icon } from '../components/Icon';
 import { ReportButton } from '../components/ReportButton';
 import { formatWhen } from '../lib/format';
@@ -151,7 +152,7 @@ export function ReaderPage() {
         </Link>
       )}
 
-      <Comments partId={part.id} />
+      <Comments url={`/parts/${part.id}/comments`} queryKey={['comments', part.id]} />
 
       <p style={{ marginTop: 20, textAlign: 'center' }}><ReportButton target="part" targetId={part.id} /></p>
 
@@ -162,44 +163,5 @@ export function ReaderPage() {
         </div>
       )}
     </>
-  );
-}
-
-function Comments({ partId }: { partId: string }) {
-  const { t } = useTranslation();
-  const { user } = useAuth();
-  const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['comments', partId], queryFn: () => api<Comment[]>(`/parts/${partId}/comments`) });
-  const [body, setBody] = useState('');
-  const add = useMutation({
-    mutationFn: () => api(`/parts/${partId}/comments`, { method: 'POST', json: { body } }),
-    onSuccess: () => {
-      setBody('');
-      void qc.invalidateQueries({ queryKey: ['comments', partId] });
-    },
-  });
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    if (body.trim()) add.mutate();
-  };
-  return (
-    <section id="comments" style={{ marginTop: 28 }}>
-      <div className="section-title"><h3>{t('reader.comments')}</h3></div>
-      {user && (
-        <form onSubmit={submit} style={{ display: 'flex', gap: 8 }}>
-          <input className="field" value={body} onChange={(e) => setBody(e.target.value)} maxLength={2000} placeholder={t('reader.comment')} />
-          <button className="btn primary" type="submit" disabled={add.isPending}>{t('reader.send')}</button>
-        </form>
-      )}
-      {add.error && <p className="form-error">{(add.error as ApiError).message}</p>}
-      {q.data?.length === 0 && <p className="muted" style={{ marginTop: 10 }}>{t('reader.noComments')}</p>}
-      {q.data?.map((c) => (
-        <div key={c.id} className={`comment${c.parentId ? ' reply' : ''}`}>
-          <p className="muted"><b>{c.user.displayName}</b> @{c.user.handle} · {formatWhen(c.createdAt)}</p>
-          <p>{c.body}</p>
-          {user && user.handle !== c.user.handle && <ReportButton target="comment" targetId={c.id} compact />}
-        </div>
-      ))}
-    </section>
   );
 }

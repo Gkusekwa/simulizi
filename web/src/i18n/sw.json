@@ -45,6 +45,11 @@
     "kind": { "single": "Kazi moja", "series": "Mfululizo" },
     "plan": { "all_at_once": "Zote kwa pamoja", "daily": "Kila siku", "weekly": "Kila wiki", "manual": "Mwandishi achapishe" },
     "locked": "Ingia ili kusoma sehemu hii",
+    "ratingCount": "tathmini {{count}}",
+    "noRatings": "Bado haijatathminiwa",
+    "rateIt": "Tathmini kazi hii",
+    "rateAfter": "Maliza sehemu moja kwanza ili kutathmini",
+    "yourRating": "Umetoa nyota {{n}}",
     "access": { "members": "Wanachama tu", "preview": "Sehemu {{n}} za kwanza bila akaunti" }
   },
   "reader": {

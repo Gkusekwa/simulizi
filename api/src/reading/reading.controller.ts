@@ -2,9 +2,10 @@ import { Body, Controller, Delete, Get, Headers, Param, ParseIntPipe, Post, Put,
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { Public } from '../auth/public.decorator';
-import { CommentDto, ProgressDto } from './dto/reading.dto';
+import { CommentDto, ProgressDto, RateDto } from './dto/reading.dto';
 import { ReadingService } from './reading.service';
 import { SearchService } from './search.service';
+import { WorkSocialService } from './work-social.service';
 
 @ApiTags('reading')
 @Controller()
@@ -12,7 +13,50 @@ export class ReadingController {
   constructor(
     private readonly reading: ReadingService,
     private readonly search: SearchService,
+    private readonly social: WorkSocialService,
   ) {}
+
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Like a work' })
+  @Put('works/:slug/like')
+  likeWork(@CurrentUser() u: AuthUser, @Param('slug') slug: string) {
+    return this.social.like(u.id, slug, true);
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Unlike a work' })
+  @Delete('works/:slug/like')
+  unlikeWork(@CurrentUser() u: AuthUser, @Param('slug') slug: string) {
+    return this.social.like(u.id, slug, false);
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Rate a work 1-5 (after finishing at least one part)' })
+  @Put('works/:slug/rating')
+  rate(@CurrentUser() u: AuthUser, @Param('slug') slug: string, @Body() dto: RateDto) {
+    return this.social.rate(u.id, slug, dto.stars);
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Remove my rating' })
+  @Delete('works/:slug/rating')
+  unrate(@CurrentUser() u: AuthUser, @Param('slug') slug: string) {
+    return this.social.unrate(u.id, slug);
+  }
+
+  @Public()
+  @ApiOperation({ summary: 'Comments on a work (newest first, one reply level)' })
+  @Get('works/:slug/comments')
+  workComments(@CurrentUser() u: AuthUser | undefined, @Param('slug') slug: string) {
+    return this.social.comments(slug, u?.id);
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Comment on a work' })
+  @Post('works/:slug/comments')
+  addWorkComment(@CurrentUser() u: AuthUser, @Param('slug') slug: string, @Body() dto: CommentDto) {
+    return this.social.addComment(u.id, slug, dto);
+  }
 
   @Public()
   @ApiOperation({ summary: 'Home feed: latest releases and most followed' })

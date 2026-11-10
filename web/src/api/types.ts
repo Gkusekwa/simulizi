@@ -75,6 +75,9 @@ export interface WorkPage extends WorkCard {
   following: boolean;
   followers: number | string;
   readers: string;
+  likes: number | string;
+  liked: boolean;
+  stars: { average: number | null; count: number | null; mine: number | null; canRate: boolean };
   nextRelease: { position: number; title: string; publicAt: string | null } | null;
   isOwner: boolean;
 }

@@ -4,6 +4,7 @@ import { ModerationService } from '../moderation/moderation.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { partSummary } from '../works/works.service';
 import { CommentDto, ProgressDto } from './dto/reading.dto';
+import { WorkSocialService } from './work-social.service';
 
 const workCard = {
   id: true,
@@ -38,6 +39,7 @@ export class ReadingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly moderation: ModerationService,
+    private readonly social: WorkSocialService,
   ) {}
 
   /** Signed-out readers must not see Mature works; signed-in only if opted in. */
@@ -99,8 +101,10 @@ export class ReadingService {
     const nextRelease = parts.find((p) => p.state === 'scheduled');
     const readerCount = await this.uniqueReaders(work.id);
     const isOwner = work.ownerId === userId;
+    const social = await this.social.summary(work.id, userId);
     return {
       ...work,
+      ...social,
       parts: parts.map((p) => ({
         ...p,
         // Scheduled parts show only their title and time to readers.

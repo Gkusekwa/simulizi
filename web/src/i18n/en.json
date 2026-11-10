@@ -45,6 +45,11 @@
     "kind": { "single": "Single", "series": "Series" },
     "plan": { "all_at_once": "All at once", "daily": "Daily", "weekly": "Weekly", "manual": "Writer publishes" },
     "locked": "Sign in to read this part",
+    "ratingCount": "{{count}} ratings",
+    "noRatings": "No ratings yet",
+    "rateIt": "Rate this work",
+    "rateAfter": "Finish one part to rate it",
+    "yourRating": "You gave {{n}} stars",
     "access": { "members": "Members only", "preview": "First {{n}} parts free without an account" }
   },
   "reader": {

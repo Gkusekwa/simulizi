@@ -27,6 +27,7 @@ const P: Record<string, string> = {
   chart: '<path d="M3 3v18h18"/><path d="M7 15l4-4 4 4 5-6"/>',
   ban: '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
   lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  star: '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>',
   down: '<path d="m6 9 6 6 6-6"/>',
 };
 

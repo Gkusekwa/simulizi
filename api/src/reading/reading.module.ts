@@ -4,10 +4,11 @@ import { ModerationModule } from '../moderation/moderation.module';
 import { ReadingController } from './reading.controller';
 import { ReadingService } from './reading.service';
 import { SearchService } from './search.service';
+import { WorkSocialService } from './work-social.service';
 
 @Module({
   imports: [WorksModule, ModerationModule],
   controllers: [ReadingController],
-  providers: [ReadingService, SearchService],
+  providers: [ReadingService, SearchService, WorkSocialService],
 })
 export class ReadingModule {}

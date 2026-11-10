@@ -7,6 +7,10 @@ export class ProgressDto {
   @ApiPropertyOptional() @IsOptional() @IsBoolean() finished?: boolean;
 }
 
+export class RateDto {
+  @ApiProperty({ minimum: 1, maximum: 5 }) @IsInt() @Min(1) @Max(5) stars!: number;
+}
+
 export class CommentDto {
   @ApiProperty() @IsString() @MinLength(1) @MaxLength(2000) body!: string;
   @ApiPropertyOptional() @IsOptional() @IsString() parentId?: string;

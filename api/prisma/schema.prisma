@@ -126,6 +126,8 @@ model User {
   reports       Report[]       @relation("Reporter")
   blocks        Block[]        @relation("Blocker")
   blockedBy     Block[]        @relation("Blocked")
+  workLikes     WorkLike[]
+  ratings       Rating[]
 }
 
 // ---------------------------------------------------------------------------
@@ -261,6 +263,9 @@ model Work {
   translations  Work[]  @relation("Translation")
   parts         Part[]
   follows       Follow[]
+  comments      Comment[]
+  likes         WorkLike[]
+  ratings       Rating[]
 
   @@index([ownerId])
   @@index([status, lastPublicAt])
@@ -373,21 +378,53 @@ model ReadEvent {
   @@index([partId, day])
 }
 
+// A comment sits on a part or on a work (exactly one of partId / workId).
 model Comment {
   id        String    @id @default(uuid())
-  partId    String
+  partId    String?
+  workId    String?
   userId    String
   parentId  String?
   body      String
   createdAt DateTime  @default(now())
   hiddenAt  DateTime?
 
-  part    Part      @relation(fields: [partId], references: [id], onDelete: Cascade)
+  part    Part?     @relation(fields: [partId], references: [id], onDelete: Cascade)
+  work    Work?     @relation(fields: [workId], references: [id], onDelete: Cascade)
   user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   parent  Comment?  @relation("Replies", fields: [parentId], references: [id])
   replies Comment[] @relation("Replies")
 
   @@index([partId, createdAt])
+  @@index([workId, createdAt])
+}
+
+model WorkLike {
+  userId    String
+  workId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  work Work @relation(fields: [workId], references: [id], onDelete: Cascade)
+
+  @@id([userId, workId])
+  @@index([workId])
+}
+
+// 1-5 stars, one per reader per work, allowed after finishing at least one
+// part; the average is public only from 5 ratings (doc 05).
+model Rating {
+  userId    String
+  workId    String
+  stars     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  work Work @relation(fields: [workId], references: [id], onDelete: Cascade)
+
+  @@id([userId, workId])
+  @@index([workId])
 }
 
 
