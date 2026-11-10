@@ -66,6 +66,7 @@ export function Layout() {
     { to: '/library', icon: 'library', label: t('nav.library') },
     { to: '/studio', icon: 'pen', label: t('nav.studio') },
     { to: user ? `/@${user.handle}` : '/login', icon: 'user', label: user ? t('nav.profile') : t('nav.signin') },
+    ...(user && user.role !== 'reader' ? [{ to: '/mod', icon: 'ban', label: t('mod.title') }] : []),
   ];
   return (
     <div className="shell">

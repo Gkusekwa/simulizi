@@ -17,6 +17,7 @@ const PartEditorPage = lazy(() => import('./pages/studio/PartEditorPage').then((
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })));
 const SearchPage = lazy(() => import('./pages/SearchPage').then((m) => ({ default: m.SearchPage })));
+const ModQueuePage = lazy(() => import('./pages/ModQueuePage').then((m) => ({ default: m.ModQueuePage })));
 
 function Protected({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -47,6 +48,7 @@ export function App() {
               <Route path="library" element={<Protected><LibraryPage /></Protected>} />
               <Route path="notifications" element={<Protected><NotificationsPage /></Protected>} />
               <Route path="settings" element={<Protected><SettingsPage /></Protected>} />
+              <Route path="mod" element={<Protected><ModQueuePage /></Protected>} />
               <Route path="studio" element={<Protected><StudioPage /></Protected>} />
               <Route path="studio/works/:id" element={<Protected><WorkEditorPage /></Protected>} />
               <Route path="studio/parts/:id" element={<Protected><PartEditorPage /></Protected>} />

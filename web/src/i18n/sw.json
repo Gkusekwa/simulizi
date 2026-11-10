@@ -175,6 +175,18 @@
     "reasons": { "spam": "Taka / matangazo", "harassment": "Unyanyasaji", "copyright": "Hakimiliki", "illegal": "Maudhui haramu", "child_safety": "Usalama wa mtoto", "other": "Nyingine" }
   },
   "block": { "button": "Zuia", "unblock": "Ondoa kizuizi", "hint": "Hataweza kukufuata, kutoa maoni kwenye kazi zako au kuona wasifu wako." },
+  "mod": {
+    "eyebrow": "Wasimamizi",
+    "title": "Ripoti",
+    "status": { "open": "Zinazosubiri", "upheld": "Zilizokubaliwa", "rejected": "Zilizokataliwa" },
+    "empty": "Hakuna ripoti.",
+    "urgent": "Ya dharura",
+    "target": { "part": "sehemu", "comment": "maoni", "user": "akaunti" },
+    "open": "fungua",
+    "uphold": "Kubali (ficha + onyo)",
+    "reject": "Kataa",
+    "upholdConfirm": "Maudhui yataondolewa na mhusika atapata onyo. Endelea?"
+  },
   "stats": {
     "title": "Takwimu",
     "reads": "Usomaji",

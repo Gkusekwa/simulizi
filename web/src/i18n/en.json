@@ -175,6 +175,18 @@
     "reasons": { "spam": "Spam / advertising", "harassment": "Harassment", "copyright": "Copyright", "illegal": "Illegal content", "child_safety": "Child safety", "other": "Other" }
   },
   "block": { "button": "Block", "unblock": "Unblock", "hint": "They cannot follow you, comment on your works or open your profile." },
+  "mod": {
+    "eyebrow": "Moderators",
+    "title": "Reports",
+    "status": { "open": "Open", "upheld": "Upheld", "rejected": "Rejected" },
+    "empty": "No reports.",
+    "urgent": "Urgent",
+    "target": { "part": "part", "comment": "comment", "user": "account" },
+    "open": "open",
+    "uphold": "Uphold (hide + strike)",
+    "reject": "Reject",
+    "upholdConfirm": "The content will be hidden and the account gets a strike. Continue?"
+  },
   "stats": {
     "title": "Stats",
     "reads": "Reads",
