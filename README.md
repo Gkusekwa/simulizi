@@ -33,7 +33,19 @@ Status: **phase 1 in progress.** The walking skeleton (API, web, stack) is deplo
 - **Reads** are counted once per reader per part per day; signed-out readers send an
   `X-Anon-Id` header. Public counts under five show as "fewer than 5" (doc 16).
 - **Auth** is email + password (argon2) with rotating refresh tokens; sign-up requires a
-  birth year of 13+ (doc 10). Google sign-in and push come later.
+  birth year of 13+ (doc 10). Google sign-in and push come later. `ADMIN_EMAIL` /
+  `ADMIN_PASSWORD` seed or promote the admin on boot.
+- **Access per work** is the writer's choice: open, preview (the first N parts without an
+  account, default 10) or members only. Locked parts answer `401 account_required`.
+- **Notifications**: in-app for every follower when a part releases, plus email through
+  `SMTP_URL` (Mailpit in the stack by default) for readers who keep the email switch on.
+- **Moderation** (doc 10): reports with urgent paging of moderators, automatic hiding at
+  three eligible reports, a moderator queue at `/mod`, strikes and 30-day suspensions;
+  blocks hide comments both ways and drop the blocked account's follows.
+- **Search** is Postgres full-text (`simple` dictionary, prefix match) over title,
+  synopsis, tags and handle, maintained by a trigger. **Stats** show reads, unique readers
+  and followers per work with everything under five hidden. **Export** gives the whole
+  work as HTML or plain text.
 
 ## Developing
 
