@@ -4,6 +4,7 @@ export type ReleasePlan = 'all_at_once' | 'daily' | 'weekly' | 'manual';
 export type WorkStatus = 'draft' | 'ongoing' | 'completed' | 'hiatus';
 export type ContentRating = 'general' | 'teen' | 'mature';
 export type PartKind = 'chapter' | 'poem' | 'essay';
+export type WorkAccess = 'public' | 'preview' | 'members';
 
 export interface Me {
   id: string;
@@ -34,6 +35,8 @@ export interface WorkCard {
   tags: string[];
   rating: ContentRating;
   status: WorkStatus;
+  access: WorkAccess;
+  previewParts: number;
   coverKey: string | null;
   releasePlan: ReleasePlan;
   releaseTime: string;
@@ -68,7 +71,7 @@ export interface Progress {
 }
 
 export interface WorkPage extends WorkCard {
-  parts: (PartSummary & { likes?: number | string; progress: Progress | null })[];
+  parts: (PartSummary & { likes?: number | string; progress: Progress | null; locked: boolean })[];
   following: boolean;
   followers: number | string;
   readers: string;

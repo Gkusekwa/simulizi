@@ -1,6 +1,8 @@
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { Icon } from './Icon';
 
@@ -43,12 +45,24 @@ export function LangToggle() {
   );
 }
 
+function useUnread(enabled: boolean) {
+  const q = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => api<{ unread: number }>('/notifications'),
+    enabled,
+    refetchInterval: 60_000,
+  });
+  return q.data?.unread ?? 0;
+}
+
 export function Layout() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { isDark, toggle } = useTheme();
+  const unread = useUnread(!!user);
   const nav = [
     { to: '/', icon: 'home', label: t('nav.home'), end: true },
+    { to: '/search', icon: 'search', label: t('nav.search') },
     { to: '/library', icon: 'library', label: t('nav.library') },
     { to: '/studio', icon: 'pen', label: t('nav.studio') },
     { to: user ? `/@${user.handle}` : '/login', icon: 'user', label: user ? t('nav.profile') : t('nav.signin') },
@@ -71,6 +85,19 @@ export function Layout() {
         <div className="topbar">
           <Link className="logo" to="/" style={{ fontSize: 17 }}><span className="logo-mark">S</span>simulizi</Link>
           <div style={{ display: 'flex', gap: 8 }}>
+            {user && (
+              <Link className="btn small" to="/notifications" aria-label={`${t('notifications.title')}${unread ? ` (${unread})` : ''}`} style={{ position: 'relative' }}>
+                <Icon name="bell" />
+                {unread > 0 && (
+                  <span style={{ position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9, background: 'var(--accent)', color: 'var(--bg)', fontSize: 11, lineHeight: '18px', textAlign: 'center' }}>
+                    {unread > 99 ? '99+' : unread}
+                  </span>
+                )}
+              </Link>
+            )}
+            {user && (
+              <Link className="btn small" to="/settings" aria-label={t('settings.title')}><Icon name="settings" /></Link>
+            )}
             <LangToggle />
             <button className="btn small" type="button" onClick={toggle} aria-pressed={isDark} aria-label={isDark ? 'Light mode' : 'Dark mode'}>
               <Icon name={isDark ? 'sun' : 'moon'} />

@@ -6,6 +6,7 @@ import { api, ApiError } from '../api/client';
 import type { Comment, PartPage } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import { Icon } from '../components/Icon';
+import { ReportButton } from '../components/ReportButton';
 import { formatWhen } from '../lib/format';
 
 const SIZES = [15, 17, 19, 22];
@@ -80,6 +81,17 @@ export function ReaderPage() {
   if (q.isLoading) return <p className="muted">{t('common.loading')}</p>;
   if (q.error) {
     const e = q.error as ApiError;
+    if (e.status === 401 && e.code === 'account_required') {
+      return (
+        <div className="empty">
+          <Icon name="lock" />
+          <h3>{t('reader.accountRequired')}</h3>
+          <p className="muted">{t('reader.accountRequiredHint')}</p>
+          <Link className="btn primary" to="/login" state={{ from: `/w/${slug}/${position}` }}>{t('nav.signin')}</Link>
+          <Link className="text-link" to={`/w/${slug}`}>{t('common.back')}</Link>
+        </div>
+      );
+    }
     return <p className="muted">{e.status === 404 ? e.message || t('errors.notFound') : e.status === 403 ? e.message : t('common.error')}</p>;
   }
   const { work, part, prev, next } = q.data!;
@@ -141,6 +153,8 @@ export function ReaderPage() {
 
       <Comments partId={part.id} />
 
+      <p style={{ marginTop: 20, textAlign: 'center' }}><ReportButton target="part" targetId={part.id} /></p>
+
       {!user && (
         <div className="guest-bar">
           <span>{t('reader.guestBar')}</span>
@@ -183,6 +197,7 @@ function Comments({ partId }: { partId: string }) {
         <div key={c.id} className={`comment${c.parentId ? ' reply' : ''}`}>
           <p className="muted"><b>{c.user.displayName}</b> @{c.user.handle} · {formatWhen(c.createdAt)}</p>
           <p>{c.body}</p>
+          {user && user.handle !== c.user.handle && <ReportButton target="comment" targetId={c.id} compact />}
         </div>
       ))}
     </section>

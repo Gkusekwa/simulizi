@@ -65,6 +65,16 @@ enum PartKind {
   essay
 }
 
+// Who may read (set by the writer per work):
+//   public  -- anyone, signed in or not
+//   preview -- signed-out readers get the first `previewParts` parts; the rest needs an account
+//   members -- every part needs a signed-in account
+enum WorkAccess {
+  public
+  preview
+  members
+}
+
 enum PartState {
   draft
   ready
@@ -97,6 +107,14 @@ model User {
   lastLoginAt     DateTime?
   disabledAt      DateTime?
 
+  // Notification preferences (doc 05): per-channel switches.
+  emailOnRelease Boolean @default(true)
+  pushOnRelease  Boolean @default(true)
+  // Analytics opt-out (doc 16): events stored with part id and date only.
+  analyticsOptOut Boolean @default(false)
+  strikes        Int      @default(0)
+  suspendedUntil DateTime?
+
   works         Work[]
   refreshTokens RefreshToken[]
   follows       Follow[]
@@ -104,6 +122,89 @@ model User {
   progress      ReadingProgress[]
   comments      Comment[]
   readEvents    ReadEvent[]
+  notifications Notification[]
+  reports       Report[]       @relation("Reporter")
+  blocks        Block[]        @relation("Blocker")
+  blockedBy     Block[]        @relation("Blocked")
+}
+
+// ---------------------------------------------------------------------------
+// Notifications, moderation
+// ---------------------------------------------------------------------------
+
+enum NotificationKind {
+  release
+  comment
+  follow
+  moderation
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  kind      NotificationKind
+  title     String
+  body      String
+  // Deep link inside the app, e.g. /w/<slug>/<position>
+  link      String?
+  readAt    DateTime?
+  emailedAt DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+}
+
+enum ReportTarget {
+  part
+  comment
+  user
+}
+
+enum ReportReason {
+  spam
+  harassment
+  copyright
+  illegal
+  child_safety
+  other
+}
+
+enum ReportStatus {
+  open
+  upheld
+  rejected
+}
+
+model Report {
+  id         String       @id @default(uuid())
+  reporterId String
+  target     ReportTarget
+  targetId   String
+  reason     ReportReason
+  details    String?
+  urgent     Boolean      @default(false)
+  status     ReportStatus @default(open)
+  resolvedById String?
+  resolvedAt DateTime?
+  createdAt  DateTime     @default(now())
+
+  reporter User @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@unique([reporterId, target, targetId])
+  @@index([status, urgent, createdAt])
+}
+
+model Block {
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
 }
 
 model RefreshToken {
@@ -135,6 +236,8 @@ model Work {
   tags      String[]      @default([])
   rating    ContentRating @default(general)
   status    WorkStatus    @default(draft)
+  access       WorkAccess @default(public)
+  previewParts Int        @default(10)
   coverKey  String?
   // Release plan (doc 04). releaseTime is "HH:MM" in the work's timezone;
   // releaseWeekdays are 0=Sunday..6=Saturday and apply to the weekly plan.
@@ -149,6 +252,9 @@ model Work {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   deletedAt       DateTime?
+  // Full-text search (title, synopsis, tags, owner handle); kept current by a
+  // trigger created in the migration. Prisma never writes it.
+  searchVector    Unsupported("tsvector")?
 
   owner         User    @relation(fields: [ownerId], references: [id])
   translationOf Work?   @relation("Translation", fields: [translationOfId], references: [id])
@@ -158,6 +264,7 @@ model Work {
 
   @@index([ownerId])
   @@index([status, lastPublicAt])
+  @@index([searchVector], type: Gin)
 }
 
 model Part {
@@ -282,3 +389,5 @@ model Comment {
 
   @@index([partId, createdAt])
 }
+
+

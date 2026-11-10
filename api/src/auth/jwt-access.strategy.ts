@@ -27,9 +27,12 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt-access') 
     if (payload.type !== 'access') throw new UnauthorizedException();
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, role: true, handle: true, disabledAt: true },
+      select: { id: true, role: true, handle: true, disabledAt: true, suspendedUntil: true },
     });
     if (!user || user.disabledAt) throw new UnauthorizedException();
+    if (user.suspendedUntil && user.suspendedUntil > new Date()) {
+      throw new UnauthorizedException(`Account suspended until ${user.suspendedUntil.toISOString().slice(0, 10)}`);
+    }
     return { id: user.id, role: user.role, handle: user.handle };
   }
 }

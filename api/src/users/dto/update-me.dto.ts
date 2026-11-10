@@ -11,4 +11,10 @@ export class UpdateMeDto {
   @IsOptional()
   @IsBoolean()
   mature?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() emailOnRelease?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() pushOnRelease?: boolean;
+  @ApiPropertyOptional({ description: 'Store my reads without any identifier (doc 16)' })
+  @IsOptional()
+  @IsBoolean()
+  analyticsOptOut?: boolean;
 }

@@ -43,7 +43,9 @@
     "status": { "draft": "Rasimu", "ongoing": "Inaendelea", "completed": "Imekamilika", "hiatus": "Imesimama kwa muda" },
     "rating": { "general": "Kwa wote", "teen": "Vijana 13+", "mature": "Watu wazima 18+" },
     "kind": { "single": "Kazi moja", "series": "Mfululizo" },
-    "plan": { "all_at_once": "Zote kwa pamoja", "daily": "Kila siku", "weekly": "Kila wiki", "manual": "Mwandishi achapishe" }
+    "plan": { "all_at_once": "Zote kwa pamoja", "daily": "Kila siku", "weekly": "Kila wiki", "manual": "Mwandishi achapishe" },
+    "locked": "Ingia ili kusoma sehemu hii",
+    "access": { "members": "Wanachama tu", "preview": "Sehemu {{n}} za kwanza bila akaunti" }
   },
   "reader": {
     "part": "Sura ya {{n}}",
@@ -59,7 +61,9 @@
     "send": "Tuma",
     "textSize": "Ukubwa wa maandishi",
     "finished": "Umemaliza sehemu hii",
-    "stanzas": "Beti {{count}}"
+    "stanzas": "Beti {{count}}",
+    "accountRequired": "Sehemu hii inahitaji akaunti",
+    "accountRequiredHint": "Mwandishi ameweka kazi hii kwa wasomaji walioingia. Ni bure; ingia au fungua akaunti."
   },
   "library": {
     "title": "Maktaba yangu",
@@ -103,6 +107,10 @@
     "genre": "Aina ya hadithi",
     "status": "Hali",
     "plan": "Ratiba ya kutoa",
+    "access": "Nani anaweza kusoma",
+    "accessOptions": { "public": "Mtu yeyote, bila akaunti", "preview": "Sehemu za kwanza bila akaunti, zingine kwa akaunti", "members": "Wasomaji walioingia tu" },
+    "accessHint": { "public": "Kila sehemu inasomeka bila kuingia.", "preview": "Sehemu {{n}} za kwanza zinasomeka bila akaunti; zinazofuata zinahitaji kuingia.", "members": "Kila sehemu inahitaji akaunti ya Simulizi (bure)." },
+    "previewParts": "Sehemu za bure",
     "releaseTime": "Saa ya kutoa",
     "weekdays": "Siku za wiki",
     "nextSlot": "Nafasi inayofuata: {{when}}",
@@ -139,6 +147,44 @@
     "followers": "wafuasi {{count}}",
     "worksBy": "Kazi za {{name}}",
     "private": "Wasifu huu ni wa faragha."
+  },
+  "settings": {
+    "eyebrow": "Akaunti yako",
+    "title": "Mipangilio",
+    "bio": "Kuhusu wewe",
+    "uiLanguage": "Lugha ya programu",
+    "profilePublic": "Wasifu wa wazi",
+    "profilePublicHint": "Wengine wanaweza kuona maktaba yako na kazi ulizomaliza. Akaunti za chini ya miaka 18 hubaki za faragha.",
+    "emailOnRelease": "Barua pepe sehemu mpya inapotoka",
+    "emailOnReleaseHint": "Kwa kazi unazofuata. Arifa ndani ya programu huja kila wakati.",
+    "mature": "Onyesha kazi za watu wazima (18+)",
+    "matureHint": "Unathibitisha una miaka 18 au zaidi.",
+    "matureMinor": "Haipatikani kwa akaunti za chini ya miaka 18.",
+    "analyticsOptOut": "Usinihesabu kwa takwimu",
+    "analyticsOptOutHint": "Usomaji wako huhifadhiwa bila kitambulisho chochote — kipengele na tarehe tu.",
+    "saved": "Imehifadhiwa"
+  },
+  "notifications": { "title": "Arifa", "readAll": "Weka zote kama zimesomwa", "empty": "Hakuna arifa bado. Fuata kazi ili upate taarifa sehemu mpya inapotoka." },
+  "search": { "placeholder": "Tafuta hadithi, mwandishi, lebo…", "none": "Hakuna matokeo ya “{{q}}”.", "hint": "Andika angalau herufi mbili." },
+  "report": {
+    "button": "Ripoti",
+    "reason": "Sababu",
+    "details": "Maelezo (si lazima)",
+    "send": "Tuma ripoti",
+    "sent": "Ripoti imetumwa. Asante.",
+    "reasons": { "spam": "Taka / matangazo", "harassment": "Unyanyasaji", "copyright": "Hakimiliki", "illegal": "Maudhui haramu", "child_safety": "Usalama wa mtoto", "other": "Nyingine" }
+  },
+  "block": { "button": "Zuia", "unblock": "Ondoa kizuizi", "hint": "Hataweza kukufuata, kutoa maoni kwenye kazi zako au kuona wasifu wako." },
+  "stats": {
+    "title": "Takwimu",
+    "reads": "Usomaji",
+    "readsWeek": "siku 7 zilizopita",
+    "readers": "Wasomaji wa kipekee (siku 30)",
+    "followers": "Wafuasi",
+    "perPart": "Kwa sehemu",
+    "export": "Pakua kazi yote",
+    "exportHtml": "HTML",
+    "exportText": "Maandishi"
   },
   "errors": { "notFound": "Haipatikani.", "network": "Hakuna mtandao. Jaribu tena.", "auth": "Barua pepe au nenosiri si sahihi." }
 }

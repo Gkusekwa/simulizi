@@ -1,7 +1,10 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, Param, Patch, Post, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
+import { RawResponse } from '../common/response.interceptor';
 import { CreatePartDto, CreateWorkDto, MovePartDto, SaveDraftDto, UpdateWorkDto } from './dto/work.dto';
+import { ExportService } from './export.service';
+import { StatsService } from './stats.service';
 import { WorksService } from './works.service';
 
 /** Writer studio endpoints. Everything here is owner-only. */
@@ -9,7 +12,35 @@ import { WorksService } from './works.service';
 @ApiBearerAuth()
 @Controller('studio')
 export class WorksController {
-  constructor(private readonly works: WorksService) {}
+  constructor(
+    private readonly works: WorksService,
+    private readonly stats: StatsService,
+    private readonly exporter: ExportService,
+  ) {}
+
+  @ApiOperation({ summary: 'Reads, unique readers and followers for a work' })
+  @Get('works/:id/stats')
+  workStats(@CurrentUser() u: AuthUser, @Param('id') id: string) {
+    return this.stats.forWork(u.id, id);
+  }
+
+  @RawResponse()
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  @Header('Content-Disposition', 'attachment')
+  @ApiOperation({ summary: 'Export the whole work as one HTML file' })
+  @Get('works/:id/export.html')
+  exportHtml(@CurrentUser() u: AuthUser, @Param('id') id: string) {
+    return this.exporter.html(u.id, id);
+  }
+
+  @RawResponse()
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  @Header('Content-Disposition', 'attachment')
+  @ApiOperation({ summary: 'Export the whole work as plain text' })
+  @Get('works/:id/export.txt')
+  exportText(@CurrentUser() u: AuthUser, @Param('id') id: string) {
+    return this.exporter.text(u.id, id);
+  }
 
   @ApiOperation({ summary: 'My works' })
   @Get('works')

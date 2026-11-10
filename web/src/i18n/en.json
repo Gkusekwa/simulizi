@@ -43,7 +43,9 @@
     "status": { "draft": "Draft", "ongoing": "Ongoing", "completed": "Completed", "hiatus": "On hiatus" },
     "rating": { "general": "General", "teen": "Teen 13+", "mature": "Mature 18+" },
     "kind": { "single": "Single", "series": "Series" },
-    "plan": { "all_at_once": "All at once", "daily": "Daily", "weekly": "Weekly", "manual": "Writer publishes" }
+    "plan": { "all_at_once": "All at once", "daily": "Daily", "weekly": "Weekly", "manual": "Writer publishes" },
+    "locked": "Sign in to read this part",
+    "access": { "members": "Members only", "preview": "First {{n}} parts free without an account" }
   },
   "reader": {
     "part": "Part {{n}}",
@@ -59,7 +61,9 @@
     "send": "Send",
     "textSize": "Text size",
     "finished": "You finished this part",
-    "stanzas": "{{count}} stanzas"
+    "stanzas": "{{count}} stanzas",
+    "accountRequired": "This part needs an account",
+    "accountRequiredHint": "The writer set this work for signed-in readers. It is free; sign in or create an account."
   },
   "library": {
     "title": "My library",
@@ -103,6 +107,10 @@
     "genre": "Genre",
     "status": "Status",
     "plan": "Release plan",
+    "access": "Who can read",
+    "accessOptions": { "public": "Anyone, no account needed", "preview": "First parts free, the rest with an account", "members": "Signed-in readers only" },
+    "accessHint": { "public": "Every part can be read without signing in.", "preview": "The first {{n}} parts can be read without an account; later parts need a sign-in.", "members": "Every part needs a (free) Simulizi account." },
+    "previewParts": "Free parts",
     "releaseTime": "Release time",
     "weekdays": "Weekdays",
     "nextSlot": "Next slot: {{when}}",
@@ -139,6 +147,44 @@
     "followers": "{{count}} followers",
     "worksBy": "Works by {{name}}",
     "private": "This profile is private."
+  },
+  "settings": {
+    "eyebrow": "Your account",
+    "title": "Settings",
+    "bio": "About you",
+    "uiLanguage": "App language",
+    "profilePublic": "Public profile",
+    "profilePublicHint": "Others can see your library and finished works. Under-18 accounts stay private.",
+    "emailOnRelease": "Email me when a new part is out",
+    "emailOnReleaseHint": "For works you follow. In-app notifications always arrive.",
+    "mature": "Show Mature (18+) works",
+    "matureHint": "You confirm you are 18 or older.",
+    "matureMinor": "Not available on under-18 accounts.",
+    "analyticsOptOut": "Do not count me in analytics",
+    "analyticsOptOutHint": "Your reads are stored with no identifier at all — only the part and the date.",
+    "saved": "Saved"
+  },
+  "notifications": { "title": "Notifications", "readAll": "Mark all read", "empty": "Nothing yet. Follow a work to hear when a new part is out." },
+  "search": { "placeholder": "Search stories, writers, tags…", "none": "No results for “{{q}}”.", "hint": "Type at least two letters." },
+  "report": {
+    "button": "Report",
+    "reason": "Reason",
+    "details": "Details (optional)",
+    "send": "Send report",
+    "sent": "Report sent. Thank you.",
+    "reasons": { "spam": "Spam / advertising", "harassment": "Harassment", "copyright": "Copyright", "illegal": "Illegal content", "child_safety": "Child safety", "other": "Other" }
+  },
+  "block": { "button": "Block", "unblock": "Unblock", "hint": "They cannot follow you, comment on your works or open your profile." },
+  "stats": {
+    "title": "Stats",
+    "reads": "Reads",
+    "readsWeek": "last 7 days",
+    "readers": "Unique readers (30 days)",
+    "followers": "Followers",
+    "perPart": "Per part",
+    "export": "Download the whole work",
+    "exportHtml": "HTML",
+    "exportText": "Plain text"
   },
   "errors": { "notFound": "Not found.", "network": "No connection. Try again.", "auth": "Wrong email or password." }
 }

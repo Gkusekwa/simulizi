@@ -13,9 +13,19 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
-import { ContentRating, Language, PartKind, ReleasePlan, WorkKind, WorkStatus } from '@prisma/client';
+import { ContentRating, Language, PartKind, ReleasePlan, WorkAccess, WorkKind, WorkStatus } from '@prisma/client';
 
 export class CreateWorkDto {
+  @ApiPropertyOptional({ enum: WorkAccess, description: 'public | preview (first N parts free) | members (account required)' })
+  @IsOptional()
+  @IsEnum(WorkAccess)
+  access?: WorkAccess;
+  @ApiPropertyOptional({ description: 'Parts readable without an account when access = preview', default: 10 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  previewParts?: number;
   @ApiProperty() @IsString() @MinLength(1) @MaxLength(120) title!: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(1000) synopsis?: string;
   @ApiProperty({ enum: Language }) @IsEnum(Language) language!: Language;
@@ -31,6 +41,8 @@ export class CreateWorkDto {
 }
 
 export class UpdateWorkDto {
+  @ApiPropertyOptional({ enum: WorkAccess }) @IsOptional() @IsEnum(WorkAccess) access?: WorkAccess;
+  @ApiPropertyOptional() @IsOptional() @IsInt() @Min(1) @Max(100) previewParts?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() @MinLength(1) @MaxLength(120) title?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(1000) synopsis?: string;
   @ApiPropertyOptional({ enum: Language }) @IsOptional() @IsEnum(Language) language?: Language;

@@ -8,6 +8,7 @@ import {
 import { Part, PartState, Prisma, Work } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { docFromText, poemFromText, PMNode, readMinutes, render } from '../content/prosemirror';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePartDto, CreateWorkDto, MovePartDto, SaveDraftDto, UpdateWorkDto } from './dto/work.dto';
 import { nextSlots } from './release/slots';
@@ -35,7 +36,10 @@ export const partSummary = {
 export class WorksService {
   private readonly logger = new Logger(WorksService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   // ------------------------------------------------------------------ works
 
@@ -52,6 +56,8 @@ export class WorksService {
         genre: dto.genre,
         tags: dto.tags ?? [],
         rating: dto.rating ?? 'general',
+        access: dto.access ?? 'public',
+        previewParts: dto.previewParts ?? 10,
       },
     });
   }
@@ -349,6 +355,10 @@ export class WorksService {
       });
     }
     this.logger.log(`released ${parts.length} part(s)`);
+    // Fan out "new part" to followers; failures must never block a release.
+    for (const p of parts) {
+      await this.notifications.partReleased(p.id).catch((e) => this.logger.warn(`notify failed: ${(e as Error).message}`));
+    }
   }
 
   // ---------------------------------------------------------------- helpers

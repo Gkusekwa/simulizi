@@ -27,6 +27,13 @@ services:
       # The web app is on another hostname and calls the API cross-origin.
       CORS_ORIGINS: ${CORS_ORIGINS:-https://simulizi.tzcom.cloud}
       PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:-https://simulizi.tzcom.cloud}
+      # Email: nasinfra's Mailpit by default; point SMTP_HOST/PORT at a real
+      # provider (Brevo/Resend, chosen in sprint 1) to send to readers.
+      SMTP_URL: smtp://${SMTP_HOST:-mailpit}:${SMTP_PORT:-1025}
+      MAIL_FROM: ${SMTP_FROM:-Simulizi <no-reply@simulizi.tzcom.cloud>}
+      # Admin bootstrap: promote or create this account as admin on boot. Empty = off.
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     networks:
       - default
       - nasinfra

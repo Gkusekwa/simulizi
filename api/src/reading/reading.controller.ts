@@ -4,17 +4,29 @@ import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { Public } from '../auth/public.decorator';
 import { CommentDto, ProgressDto } from './dto/reading.dto';
 import { ReadingService } from './reading.service';
+import { SearchService } from './search.service';
 
 @ApiTags('reading')
 @Controller()
 export class ReadingController {
-  constructor(private readonly reading: ReadingService) {}
+  constructor(
+    private readonly reading: ReadingService,
+    private readonly search: SearchService,
+  ) {}
 
   @Public()
   @ApiOperation({ summary: 'Home feed: latest releases and most followed' })
   @Get('discover')
   discover(@CurrentUser() u: AuthUser | undefined, @Query('language') language?: 'sw' | 'en') {
     return this.reading.discover(u?.id, language === 'sw' || language === 'en' ? language : undefined);
+  }
+
+  @Public()
+  @ApiOperation({ summary: 'Search works by title, synopsis, tags or writer handle' })
+  @Get('search')
+  async searchWorks(@CurrentUser() u: AuthUser | undefined, @Query('q') q = '', @Query('language') language?: 'sw' | 'en') {
+    const mature = await this.reading.canSeeMature(u?.id);
+    return this.search.works(q.slice(0, 100), { language: language === 'sw' || language === 'en' ? language : undefined, mature });
   }
 
   @Public()
@@ -81,8 +93,8 @@ export class ReadingController {
   @Public()
   @ApiOperation({ summary: 'Comments on a part (newest first, one reply level)' })
   @Get('parts/:id/comments')
-  comments(@Param('id') id: string) {
-    return this.reading.comments(id);
+  comments(@CurrentUser() u: AuthUser | undefined, @Param('id') id: string) {
+    return this.reading.comments(id, u?.id);
   }
 
   @ApiBearerAuth()

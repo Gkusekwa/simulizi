@@ -40,6 +40,11 @@ export function WorkPage() {
           <p className="muted"><Link to={`/@${w.owner.handle}`}>{t('work.by', { name: w.owner.displayName })}</Link></p>
           <p className="muted" style={{ marginTop: 8 }}>{t('work.readers', { count: w.readers })} · {t('work.followers', { count: count(w.followers) })}</p>
           {w.rating !== 'general' && <span className="pill warn" style={{ marginTop: 6 }}>{t('work.rating.' + w.rating)}</span>}
+          {w.access !== 'public' && (
+            <span className="pill" style={{ marginTop: 6, marginLeft: 6 }}>
+              <Icon name="lock" size={12} /> {w.access === 'members' ? t('work.access.members') : t('work.access.preview', { n: w.previewParts })}
+            </span>
+          )}
         </div>
       </div>
 
@@ -78,6 +83,17 @@ export function WorkPage() {
                 <small><Icon name="clock" size={14} /> {t('work.scheduled', { when: formatWhen(p.publicAt) })}</small>
               </div>
             </div>
+          );
+        }
+        if (p.locked) {
+          return (
+            <Link className="part-row" key={p.id} to="/login" state={{ from: `/w/${slug}/${p.position}` }} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div style={{ flex: 1 }}>
+                <h3>{p.position}. {p.title}</h3>
+                <small><Icon name="lock" size={14} /> {t('work.locked')}</small>
+              </div>
+              <span className="pill">{t('nav.signin')}</span>
+            </Link>
           );
         }
         return (

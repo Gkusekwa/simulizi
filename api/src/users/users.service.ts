@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateMeDto } from './dto/update-me.dto';
 
@@ -25,17 +25,37 @@ export class UsersService {
         uiLanguage: true,
         mature: true,
         birthYear: true,
-        _count: { select: { works: true, follows: true } },
+        emailOnRelease: true,
+        pushOnRelease: true,
+        analyticsOptOut: true,
+        suspendedUntil: true,
+        _count: { select: { works: true, follows: true, notifications: { where: { readAt: null } } } },
       },
     });
     return u;
   }
 
   async updateMe(userId: string, dto: UpdateMeDto) {
+    if (dto.mature) {
+      // Mature content needs an 18+ declaration; under-18 accounts cannot opt in (doc 10).
+      const u = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { birthYear: true } });
+      if (!u.birthYear || new Date().getUTCFullYear() - u.birthYear < 18) {
+        throw new ForbiddenException('Mature works are for accounts aged 18 or over');
+      }
+    }
     return this.prisma.user.update({
       where: { id: userId },
       data: dto,
-      select: { ...publicSelect, email: true, role: true, uiLanguage: true, mature: true },
+      select: {
+        ...publicSelect,
+        email: true,
+        role: true,
+        uiLanguage: true,
+        mature: true,
+        emailOnRelease: true,
+        pushOnRelease: true,
+        analyticsOptOut: true,
+      },
     });
   }
 

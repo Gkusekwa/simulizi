@@ -9,6 +9,9 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { UsersModule } from './users/users.module';
 import { WorksModule } from './works/works.module';
 import { ReadingModule } from './reading/reading.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { ModerationModule } from './moderation/moderation.module';
+import { AdminModule } from './admin/admin.module';
 import { HealthController } from './health/health.controller';
 import { ResponseInterceptor } from './common/response.interceptor';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
@@ -21,10 +24,13 @@ import { validateEnv } from './config/env.validation';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     ScheduleModule.forRoot(),
     PrismaModule,
+    NotificationsModule,
     AuthModule,
     UsersModule,
     WorksModule,
     ReadingModule,
+    ModerationModule,
+    AdminModule,
   ],
   controllers: [HealthController],
   providers: [

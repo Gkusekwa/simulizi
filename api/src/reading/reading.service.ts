@@ -1,5 +1,6 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { ModerationService } from '../moderation/moderation.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { partSummary } from '../works/works.service';
 import { CommentDto, ProgressDto } from './dto/reading.dto';
@@ -15,6 +16,8 @@ const workCard = {
   tags: true,
   rating: true,
   status: true,
+  access: true,
+  previewParts: true,
   coverKey: true,
   releasePlan: true,
   releaseTime: true,
@@ -32,13 +35,20 @@ function fewerThanFive(n: number): number | string {
 
 @Injectable()
 export class ReadingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly moderation: ModerationService,
+  ) {}
 
   /** Signed-out readers must not see Mature works; signed-in only if opted in. */
-  private async ratingFilter(userId?: string): Promise<Prisma.WorkWhereInput> {
-    if (!userId) return { rating: { not: 'mature' } };
+  async canSeeMature(userId?: string): Promise<boolean> {
+    if (!userId) return false;
     const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { mature: true } });
-    return u?.mature ? {} : { rating: { not: 'mature' } };
+    return !!u?.mature;
+  }
+
+  private async ratingFilter(userId?: string): Promise<Prisma.WorkWhereInput> {
+    return (await this.canSeeMature(userId)) ? {} : { rating: { not: 'mature' } };
   }
 
   async discover(userId?: string, language?: 'sw' | 'en') {
@@ -88,6 +98,7 @@ export class ReadingService {
       : [null, []];
     const nextRelease = parts.find((p) => p.state === 'scheduled');
     const readerCount = await this.uniqueReaders(work.id);
+    const isOwner = work.ownerId === userId;
     return {
       ...work,
       parts: parts.map((p) => ({
@@ -96,19 +107,29 @@ export class ReadingService {
         likes: p.state === 'public' ? fewerThanFive(p._count.likes) : undefined,
         _count: undefined,
         progress: progress.find((x) => x.partId === p.id) ?? null,
+        // Locked = needs an account under the writer's access setting (doc 13).
+        locked: !isOwner && ReadingService.needsAccount(work, p.position, userId),
       })),
       following: !!following,
       followers: fewerThanFive(work._count.follows),
       readers: readerCount < 5 ? 'fewer than 5' : `about ${Math.round(readerCount / 10) * 10}`,
       nextRelease: nextRelease ? { position: nextRelease.position, title: nextRelease.title, publicAt: nextRelease.publicAt } : null,
-      isOwner: work.ownerId === userId,
+      isOwner,
     };
+  }
+
+  /** The writer's access rule: public = never; members = always for guests; preview = beyond N parts for guests. */
+  static needsAccount(work: { access: 'public' | 'preview' | 'members'; previewParts: number }, position: number, userId?: string) {
+    if (userId) return false;
+    if (work.access === 'members') return true;
+    if (work.access === 'preview') return position > work.previewParts;
+    return false;
   }
 
   async part(slug: string, position: number, userId?: string, anonId?: string) {
     const work = await this.prisma.work.findFirst({
       where: { slug, deletedAt: null },
-      select: { id: true, ownerId: true, title: true, slug: true, rating: true, language: true, owner: { select: { handle: true, displayName: true } } },
+      select: { id: true, ownerId: true, title: true, slug: true, rating: true, language: true, access: true, previewParts: true, owner: { select: { handle: true, displayName: true } } },
     });
     if (!work) throw new NotFoundException('No such work');
     const part = await this.prisma.part.findUnique({
@@ -120,6 +141,10 @@ export class ReadingService {
       if (part?.state === 'unpublished') throw new NotFoundException('This part is unavailable');
       if (part?.state === 'removed') throw new NotFoundException('Removed for breaking the rules');
       throw new NotFoundException('No such part');
+    }
+    if (!isOwner && ReadingService.needsAccount(work, position, userId)) {
+      // 401 with a stable code so the apps can show the sign-in prompt in place.
+      throw new UnauthorizedException({ message: 'Sign in to read this part', error: 'account_required' });
     }
     if (work.rating === 'mature' && !isOwner) {
       const ok = userId
@@ -149,14 +174,21 @@ export class ReadingService {
     return { work, part, prev, next, progress, liked };
   }
 
-  /** One read per reader per part per day (doc 16). */
+  /** One read per reader per part per day (doc 16). Opted-out readers count anonymously by date only. */
   private async countRead(partId: string, userId?: string, anonId?: string) {
     if (!userId && !anonId) return;
     const day = new Date(new Date().toISOString().slice(0, 10));
+    let uid: string | null = userId ?? null;
+    let aid: string | null = userId ? null : anonId ?? null;
+    if (userId) {
+      const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { analyticsOptOut: true } });
+      if (u?.analyticsOptOut) {
+        uid = null;
+        aid = null;
+      }
+    }
     try {
-      await this.prisma.readEvent.create({
-        data: { partId, userId: userId ?? null, anonId: userId ? null : anonId ?? null, day },
-      });
+      await this.prisma.readEvent.create({ data: { partId, userId: uid, anonId: aid, day } });
     } catch {
       // unique violation = already counted today
     }
@@ -250,9 +282,11 @@ export class ReadingService {
 
   // ----------------------------------------------------------------- comments
 
-  async comments(partId: string) {
+  async comments(partId: string, viewerId?: string) {
+    // Blocks hide comments in both directions (doc 10 harassment rule).
+    const hidden = viewerId ? await this.moderation.blockedIds(viewerId) : [];
     const rows = await this.prisma.comment.findMany({
-      where: { partId, hiddenAt: null },
+      where: { partId, hiddenAt: null, ...(hidden.length ? { userId: { notIn: hidden } } : {}) },
       orderBy: { createdAt: 'desc' },
       take: 200,
       select: { id: true, parentId: true, body: true, createdAt: true, user: { select: { handle: true, displayName: true } } },
