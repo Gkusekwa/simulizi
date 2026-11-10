@@ -18,11 +18,22 @@ Status: **phase 1 in progress.** The walking skeleton (API, web, stack) is deplo
 | --- | --- |
 | `api/` | NestJS 11 + Prisma 5 on the shared Postgres 18. Auth, works, parts, release engine, reading, library. |
 | `web/` | React 19 + Vite, Swahili/English, reader, library, writer studio. Static files behind nginx. |
+| `mobile/` | Flutter (Android) reader: orbit navigation, offline copies of followed works via delta sync, native ProseMirror renderer, narration player. Writer tools stay on the web. |
 | `docker-compose.yml` | The NAS stack: `api` on host port 3009, `web` on 3008, joined to the external `nasinfra` network. |
 | `.env.example` | Every variable the stack reads; real values live in `.env` (gitignored) and in Portainer's stack env. |
 
 ## How it works
 
+- **A work is one of four kinds** (`WorkKind`): a single poem (exactly one part), a poetry
+  collection, a book (chapters) or a book collection, whose chapters are grouped into
+  volumes (`Work.volumes` holds the book titles, `Part.volume` the index). Poem kinds force
+  every part to be a poem; EPUB imports become books.
+- **Audio narration** can be attached to the parts of either book kind (`PUT
+  studio/parts/:id/audio`, MP3/M4A/OGG/WAV up to 400 MB). Files are streamed into the shared
+  RustFS bucket `simulizi` (`api/src/storage/storage.service.ts`); readers fetch a one-hour
+  presigned URL from `GET works/:slug/parts/:position/audio`, which applies the same access
+  rules as the text, and play it straight from `storage.tzcom.cloud`. Without `S3_ACCESS_KEY`
+  the feature is off and the endpoints answer 503.
 - **Content** is ProseMirror JSON (`paragraph`, `heading`, and `poem > stanza > line`),
   rendered to HTML on the server (`api/src/content/prosemirror.ts`). Writers edit a working
   copy; readers see the last published version until "Publish changes".
@@ -56,7 +67,15 @@ docker run -d --name simulizi-pg -e POSTGRES_USER=simulizi -e POSTGRES_PASSWORD=
 cd api && cp .env.example .env && npm install && npx prisma migrate dev && npm run start:dev
 # Web: proxies /api to localhost:3000
 cd web && npm install && npm run dev
+# Audio locally: a RustFS on a free port (9100 is often taken by Dart DevTools)
+docker run -d --name simulizi-s3 -p 127.0.0.1:9200:9000 -e RUSTFS_ACCESS_KEY=rustfsadmin \
+  -e RUSTFS_SECRET_KEY=rustfsadmin rustfs/rustfs:1.0.4
+# then S3_ENDPOINT=127.0.0.1 S3_PORT=9200 S3_PUBLIC_ENDPOINT=127.0.0.1 S3_PUBLIC_PORT=9200 S3_PUBLIC_USE_SSL=false
+# Android app (points at the public API; override with --dart-define=SIMULIZI_API=http://10.0.2.2:3000/api)
+cd mobile && flutter pub get && flutter run
 ```
+
+Mobile checks: `cd mobile && flutter analyze && flutter build apk --debug`.
 
 Tests: `cd api && npx jest` (renderer and release-slot rules).
 
@@ -65,7 +84,8 @@ Tests: `cd api && npx jest` (renderer and release-slot rules).
 Portainer git stack **30** on the NAS, manual *Pull and redeploy*. The images build on the
 NAS (arm64). Required stack env: `DB_PASSWORD` (= nasinfra `SIMULIZI_PASSWORD`),
 `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `CORS_ORIGINS`, `PUBLIC_API_URL`, `WEB_PORT`,
-`API_PORT`. Migrations run on container start. Health: `GET /health` on the API,
+`API_PORT`, and for audio `S3_ACCESS_KEY` / `S3_SECRET_KEY` (= nasinfra's RustFS root
+credentials; the other `S3_*` defaults match the NAS). Migrations run on container start. Health: `GET /health` on the API,
 `GET /` on the web.
 
 ## Design docs

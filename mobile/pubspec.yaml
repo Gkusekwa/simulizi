@@ -1,0 +1,31 @@
+name: simulizi
+description: "Simulizi — stories, poems and essays in Swahili and English, with offline reading of followed works."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  http: ^1.6.0
+  provider: ^6.1.5
+  shared_preferences: ^2.5.5
+  flutter_secure_storage: ^11.2.0
+  sqflite: ^2.4.2
+  path: ^1.9.1
+  intl: ^0.20.3
+  url_launcher: ^6.3.2
+  share_plus: ^13.3.1
+  just_audio: ^0.10.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
