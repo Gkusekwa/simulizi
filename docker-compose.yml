@@ -1,5 +1,7 @@
 # Simulizi -- Docker stack for the NAS.
 # Empty for now: no code yet (see README.md). Services are added here as they exist.
+# Storage decision (2026-11-10): own role + database in shared Postgres, media in the shared
+# RustFS bucket `simulizi` (S3 API at minio:9000, public via storage.tzcom.cloud) -- not R2.
 # Per docs/11: only shared Postgres (own role + db) and Redis (BullMQ) from the external
 # `nasinfra` network. Media goes to Cloudflare R2, not RustFS; RabbitMQ is not used.
 #
