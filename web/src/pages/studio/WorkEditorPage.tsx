@@ -1,0 +1,214 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { FormEvent, useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { api, ApiError } from '../../api/client';
+import type { PartKind, ReleasePlan, StudioWork, WorkStatus } from '../../api/types';
+import { Icon } from '../../components/Icon';
+import { formatWhen } from '../../lib/format';
+
+const WEEKDAYS_SW = ['J2', 'J3', 'J4', 'J5', 'Al', 'Ij', 'J1'];
+const WEEKDAYS_EN = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+export function WorkEditorPage() {
+  const { id = '' } = useParams();
+  const { t, i18n } = useTranslation();
+  const nav = useNavigate();
+  const qc = useQueryClient();
+  const key = ['studio', 'work', id];
+  const q = useQuery({ queryKey: key, queryFn: () => api<StudioWork>(`/studio/works/${id}`) });
+  const [meta, setMeta] = useState({ title: '', synopsis: '', genre: '', status: 'draft' as WorkStatus, releasePlan: 'manual' as ReleasePlan, releaseTime: '18:00', releaseWeekdays: [] as number[] });
+  const [newPart, setNewPart] = useState({ title: '', kind: 'chapter' as PartKind });
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (q.data) {
+      setMeta({
+        title: q.data.title,
+        synopsis: q.data.synopsis,
+        genre: q.data.genre ?? '',
+        status: q.data.status,
+        releasePlan: q.data.releasePlan,
+        releaseTime: q.data.releaseTime,
+        releaseWeekdays: q.data.releaseWeekdays,
+      });
+    }
+  }, [q.data]);
+
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: key });
+    void qc.invalidateQueries({ queryKey: ['studio', 'works'] });
+  };
+  const onErr = (e: unknown) => setError((e as ApiError).message);
+  const save = useMutation({ mutationFn: () => api(`/studio/works/${id}`, { method: 'PATCH', json: { ...meta, genre: meta.genre || undefined } }), onSuccess: refresh, onError: onErr });
+  const addPart = useMutation({
+    mutationFn: () => api(`/studio/works/${id}/parts`, { method: 'POST', json: newPart }),
+    onSuccess: () => {
+      setNewPart({ title: '', kind: 'chapter' });
+      refresh();
+    },
+    onError: onErr,
+  });
+  const act = useMutation({
+    mutationFn: ({ partId, action }: { partId: string; action: string }) => api(`/studio/parts/${partId}/${action}`, { method: 'POST' }),
+    onSuccess: refresh,
+    onError: onErr,
+  });
+  const publishAll = useMutation({ mutationFn: () => api(`/studio/works/${id}/publish-all`, { method: 'POST' }), onSuccess: refresh, onError: onErr });
+  const move = useMutation({
+    mutationFn: ({ partId, position }: { partId: string; position: number }) => api(`/studio/parts/${partId}/move`, { method: 'POST', json: { position } }),
+    onSuccess: refresh,
+    onError: onErr,
+  });
+  const del = useMutation({ mutationFn: () => api(`/studio/works/${id}`, { method: 'DELETE' }), onSuccess: () => nav('/studio') });
+
+  if (q.isLoading) return <p className="muted">{t('common.loading')}</p>;
+  if (q.error) return <p className="muted">{t('errors.notFound')}</p>;
+  const w = q.data!;
+  const parts = w.parts ?? [];
+  const weekdays = i18n.language === 'en' ? WEEKDAYS_EN : WEEKDAYS_SW;
+  const hasSlots = meta.releasePlan === 'daily' || meta.releasePlan === 'weekly';
+  const queued = parts.filter((p) => p.state === 'ready' || p.state === 'scheduled');
+  const nextInOrder = parts.find((p) => !['public', 'unpublished', 'removed'].includes(p.state));
+
+  const submitMeta = (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    save.mutate();
+  };
+
+  return (
+    <>
+      <p className="eyebrow"><Link to="/studio" style={{ textDecoration: 'none' }}>{t('studio.title')}</Link> · {t('work.status.' + w.status)}</p>
+      <h1>{w.title}</h1>
+      <p className="muted" style={{ marginTop: 4 }}>
+        <Link to={`/w/${w.slug}`}>simulizi.tzcom.cloud/w/{w.slug}</Link> · {w.followers ?? 0} {t('work.followers', { count: '' }).trim()}
+      </p>
+      {error && <p className="form-error" role="alert">{error}</p>}
+
+      <form className="card" onSubmit={submitMeta} style={{ marginTop: 16 }}>
+        <label className="field-label" htmlFor="title" style={{ marginTop: 0 }}>{t('studio.workTitle')}</label>
+        <input className="field" id="title" required maxLength={120} value={meta.title} onChange={(e) => setMeta({ ...meta, title: e.target.value })} />
+        <label className="field-label" htmlFor="synopsis">{t('studio.synopsis')}</label>
+        <textarea className="field" id="synopsis" maxLength={1000} value={meta.synopsis} onChange={(e) => setMeta({ ...meta, synopsis: e.target.value })} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+          <div>
+            <label className="field-label" htmlFor="genre">{t('studio.genre')}</label>
+            <input className="field" id="genre" maxLength={40} value={meta.genre} onChange={(e) => setMeta({ ...meta, genre: e.target.value })} />
+          </div>
+          <div>
+            <label className="field-label" htmlFor="status">{t('studio.status')}</label>
+            <select className="field" id="status" value={meta.status} onChange={(e) => setMeta({ ...meta, status: e.target.value as WorkStatus })}>
+              {(['draft', 'ongoing', 'completed', 'hiatus'] as WorkStatus[]).map((s) => <option key={s} value={s}>{t('work.status.' + s)}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="field-label" htmlFor="plan">{t('studio.plan')}</label>
+            <select className="field" id="plan" value={meta.releasePlan} onChange={(e) => setMeta({ ...meta, releasePlan: e.target.value as ReleasePlan })}>
+              {(['manual', 'daily', 'weekly', 'all_at_once'] as ReleasePlan[]).map((p) => <option key={p} value={p}>{t('work.plan.' + p)}</option>)}
+            </select>
+          </div>
+          {hasSlots && (
+            <div>
+              <label className="field-label" htmlFor="time">{t('studio.releaseTime')}</label>
+              <input className="field" id="time" type="time" value={meta.releaseTime} onChange={(e) => setMeta({ ...meta, releaseTime: e.target.value })} />
+            </div>
+          )}
+        </div>
+        {meta.releasePlan === 'weekly' && (
+          <div style={{ marginTop: 12 }}>
+            <span className="field-label" style={{ marginTop: 0 }}>{t('studio.weekdays')}</span>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {weekdays.map((d, i) => {
+                const on = meta.releaseWeekdays.includes(i);
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    className={`btn small${on ? ' primary' : ''}`}
+                    aria-pressed={on}
+                    onClick={() => setMeta({ ...meta, releaseWeekdays: on ? meta.releaseWeekdays.filter((x) => x !== i) : [...meta.releaseWeekdays, i].sort() })}
+                  >
+                    {d}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        <p className="muted" style={{ marginTop: 10 }}>
+          <Icon name="clock" size={14} /> {w.nextSlot ? t('studio.nextSlot', { when: formatWhen(w.nextSlot) }) : t('studio.noSlot')}
+        </p>
+        <div className="actions">
+          <button className="btn primary" type="submit" disabled={save.isPending}>{t('common.save')}</button>
+          {w.releasePlan === 'all_at_once' && queued.length > 0 && (
+            <button className="btn" type="button" disabled={publishAll.isPending} onClick={() => publishAll.mutate()}>{t('studio.publishAll')} ({queued.length})</button>
+          )}
+        </div>
+      </form>
+
+      <div className="section-title">
+        <h3>{t('studio.parts')}</h3>
+        <span className="muted">{parts.filter((p) => p.state === 'public').length} / {parts.length}</span>
+      </div>
+      {parts.map((p, idx) => {
+        const released = ['public', 'unpublished', 'removed'].includes(p.state);
+        return (
+          <div className="part-row" key={p.id}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h3>{p.position}. {p.title} <span className="muted">· {t('studio.partKind.' + p.kind)}</span></h3>
+              <small>
+                <span className={`pill${p.state === 'public' ? '' : p.state === 'scheduled' ? ' warn' : ''}`}>{t('studio.state.' + p.state)}</span>
+                {p.publicAt && <> · {formatWhen(p.publicAt)}</>}
+                {p.hasDraft && p.state !== 'draft' && <> · {t('studio.editor.unsaved')}</>}
+                {' · '}{t('studio.editor.words', { count: p.wordCount })}
+              </small>
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {!released && idx > 0 && !['public', 'unpublished', 'removed'].includes(parts[idx - 1].state) && (
+                <button className="btn small" type="button" aria-label="Move up" onClick={() => move.mutate({ partId: p.id, position: p.position - 1 })}><Icon name="up" size={14} /></button>
+              )}
+              <Link className="btn small" to={`/studio/parts/${p.id}`}><Icon name="pen" size={14} /> {t('studio.write')}</Link>
+              {p.state === 'draft' && <button className="btn small primary" type="button" onClick={() => act.mutate({ partId: p.id, action: 'ready' })}>{t('studio.markReady')}</button>}
+              {(p.state === 'ready' || p.state === 'scheduled') && (
+                <>
+                  {nextInOrder?.id === p.id && <button className="btn small primary" type="button" onClick={() => act.mutate({ partId: p.id, action: 'publish-now' })}>{t('studio.publishNow')}</button>}
+                  <button className="btn small" type="button" onClick={() => act.mutate({ partId: p.id, action: 'unready' })}>{t('studio.unready')}</button>
+                </>
+              )}
+              {p.state === 'public' && <button className="btn small" type="button" onClick={() => act.mutate({ partId: p.id, action: 'unpublish' })}>{t('studio.unpublish')}</button>}
+              {p.state === 'unpublished' && <button className="btn small" type="button" onClick={() => act.mutate({ partId: p.id, action: 'republish' })}>{t('studio.republish')}</button>}
+            </div>
+          </div>
+        );
+      })}
+
+      <form
+        className="card"
+        style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'end' }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (newPart.title.trim()) addPart.mutate();
+        }}
+      >
+        <div style={{ flex: 2, minWidth: 180 }}>
+          <label className="field-label" htmlFor="ptitle" style={{ marginTop: 0 }}>{t('studio.partTitle')}</label>
+          <input className="field" id="ptitle" required maxLength={160} value={newPart.title} onChange={(e) => setNewPart({ ...newPart, title: e.target.value })} />
+        </div>
+        <div style={{ flex: 1, minWidth: 120 }}>
+          <label className="field-label" htmlFor="pkind" style={{ marginTop: 0 }}>{t('studio.kind')}</label>
+          <select className="field" id="pkind" value={newPart.kind} onChange={(e) => setNewPart({ ...newPart, kind: e.target.value as PartKind })}>
+            {(['chapter', 'poem', 'essay'] as PartKind[]).map((k) => <option key={k} value={k}>{t('studio.partKind.' + k)}</option>)}
+          </select>
+        </div>
+        <button className="btn primary" type="submit" disabled={addPart.isPending}><Icon name="plus" size={14} /> {t('studio.addPart')}</button>
+      </form>
+
+      <div className="actions" style={{ marginTop: 30 }}>
+        <button className="btn danger small" type="button" onClick={() => window.confirm(t('studio.deleteConfirm')) && del.mutate()}>
+          <Icon name="trash" size={14} /> {t('studio.deleteWork')}
+        </button>
+      </div>
+    </>
+  );
+}

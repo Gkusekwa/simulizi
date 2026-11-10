@@ -1,0 +1,284 @@
+// Simulizi data model — the v1 contract is docs/14-v1-contract.md.
+//
+//  - A Work is made of Parts; a single is a work with one part.
+//  - Part.state is the state machine in doc 14 §2; publicAt is the release time.
+//  - Part.draftJson is the writer's working copy; bodyJson/bodyHtml is what
+//    readers see, replaced only by "Publish changes" (doc 14 §3), which also
+//    appends a PartVersion.
+//  - Text is ProseMirror JSON with poem > stanza > line nodes, rendered to
+//    HTML on the server (doc 14 §7).
+
+generator client {
+  provider      = "prisma-client-js"
+  // native = host (dev); musl target = Alpine container runtime
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  reader
+  moderator
+  admin
+}
+
+enum Language {
+  sw
+  en
+}
+
+enum WorkKind {
+  single
+  series
+}
+
+enum WorkStatus {
+  draft
+  ongoing
+  completed
+  hiatus
+}
+
+enum ContentRating {
+  general
+  teen
+  mature
+}
+
+enum ReleasePlan {
+  all_at_once
+  daily
+  weekly
+  manual
+}
+
+enum PartKind {
+  chapter
+  poem
+  essay
+}
+
+enum PartState {
+  draft
+  ready
+  scheduled
+  public
+  unpublished
+  removed
+}
+
+// ---------------------------------------------------------------------------
+// Accounts
+// ---------------------------------------------------------------------------
+
+model User {
+  id              String    @id @default(uuid())
+  email           String
+  emailNormalized String    @unique
+  passwordHash    String?
+  googleSub       String?   @unique
+  handle          String    @unique
+  displayName     String
+  bio             String?
+  role            UserRole  @default(reader)
+  uiLanguage      Language  @default(sw)
+  // Self-declared at sign-up; 13+ required, Mature content needs 18+.
+  birthYear       Int?
+  mature          Boolean   @default(false)
+  profilePublic   Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  lastLoginAt     DateTime?
+  disabledAt      DateTime?
+
+  works         Work[]
+  refreshTokens RefreshToken[]
+  follows       Follow[]
+  likes         Like[]
+  progress      ReadingProgress[]
+  comments      Comment[]
+  readEvents    ReadEvent[]
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Content
+// ---------------------------------------------------------------------------
+
+model Work {
+  id        String        @id @default(uuid())
+  ownerId   String
+  slug      String        @unique
+  title     String
+  synopsis  String        @default("")
+  language  Language
+  kind      WorkKind      @default(series)
+  genre     String?
+  tags      String[]      @default([])
+  rating    ContentRating @default(general)
+  status    WorkStatus    @default(draft)
+  coverKey  String?
+  // Release plan (doc 04). releaseTime is "HH:MM" in the work's timezone;
+  // releaseWeekdays are 0=Sunday..6=Saturday and apply to the weekly plan.
+  releasePlan     ReleasePlan @default(manual)
+  releaseTime     String      @default("18:00")
+  releaseWeekdays Int[]       @default([])
+  timezone        String      @default("Africa/Dar_es_Salaam")
+  // Linked translation (doc 14 §5, MVP: one language per work).
+  translationOfId String?
+  firstPublicAt   DateTime?
+  lastPublicAt    DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  deletedAt       DateTime?
+
+  owner         User    @relation(fields: [ownerId], references: [id])
+  translationOf Work?   @relation("Translation", fields: [translationOfId], references: [id])
+  translations  Work[]  @relation("Translation")
+  parts         Part[]
+  follows       Follow[]
+
+  @@index([ownerId])
+  @@index([status, lastPublicAt])
+}
+
+model Part {
+  id        String    @id @default(uuid())
+  workId    String
+  position  Int
+  title     String
+  kind      PartKind  @default(chapter)
+  state     PartState @default(draft)
+  // Working copy (autosave target). Null until the writer types something.
+  draftJson Json?
+  // Published text: ProseMirror JSON and its server-rendered HTML.
+  bodyJson  Json?
+  bodyHtml  String    @default("")
+  wordCount Int       @default(0)
+  readMinutes Int     @default(0)
+  version   Int       @default(0)
+  publicAt  DateTime?
+  // Set by the sweep when a scheduled part actually went public.
+  releasedAt DateTime?
+  removedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  work     Work              @relation(fields: [workId], references: [id], onDelete: Cascade)
+  versions PartVersion[]
+  likes    Like[]
+  progress ReadingProgress[]
+  comments Comment[]
+  reads    ReadEvent[]
+
+  @@unique([workId, position])
+  @@index([state, publicAt])
+}
+
+model PartVersion {
+  id        String   @id @default(uuid())
+  partId    String
+  version   Int
+  bodyJson  Json
+  createdAt DateTime @default(now())
+
+  part Part @relation(fields: [partId], references: [id], onDelete: Cascade)
+
+  @@unique([partId, version])
+}
+
+// ---------------------------------------------------------------------------
+// Readers
+// ---------------------------------------------------------------------------
+
+model Follow {
+  userId    String
+  workId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  work Work @relation(fields: [workId], references: [id], onDelete: Cascade)
+
+  @@id([userId, workId])
+  @@index([workId])
+}
+
+model Like {
+  userId    String
+  partId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  part Part @relation(fields: [partId], references: [id], onDelete: Cascade)
+
+  @@id([userId, partId])
+  @@index([partId])
+}
+
+// Position = paragraph index plus a fraction within it (doc 14 §5).
+model ReadingProgress {
+  userId         String
+  partId         String
+  paragraphIndex Int      @default(0)
+  fraction       Float    @default(0)
+  finished       Boolean  @default(false)
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  part Part @relation(fields: [partId], references: [id], onDelete: Cascade)
+
+  @@id([userId, partId])
+  @@index([userId, updatedAt])
+}
+
+// Raw read events, kept 90 days (doc 16). One per reader per part per day is
+// enforced by the unique index; anonId is the signed-out reader id.
+model ReadEvent {
+  id        String   @id @default(uuid())
+  partId    String
+  userId    String?
+  anonId    String?
+  day       DateTime @db.Date
+  createdAt DateTime @default(now())
+
+  part Part  @relation(fields: [partId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([partId, userId, anonId, day])
+  @@index([partId, day])
+}
+
+model Comment {
+  id        String    @id @default(uuid())
+  partId    String
+  userId    String
+  parentId  String?
+  body      String
+  createdAt DateTime  @default(now())
+  hiddenAt  DateTime?
+
+  part    Part      @relation(fields: [partId], references: [id], onDelete: Cascade)
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("Replies", fields: [parentId], references: [id])
+  replies Comment[] @relation("Replies")
+
+  @@index([partId, createdAt])
+}

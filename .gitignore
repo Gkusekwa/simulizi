@@ -9,3 +9,8 @@ node_modules/
 
 # design mockups (static HTML exports); not part of the deployable repo
 mockups/
+
+# build outputs
+api/dist/
+web/dist/
+**/node_modules/

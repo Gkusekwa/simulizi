@@ -1,22 +1,73 @@
-# Simulizi -- Docker stack for the NAS.
-# Empty for now: no code yet (see README.md). Services are added here as they exist.
+# Simulizi -- Docker stack for the NAS (Portainer git stack 30).
 #
-# Storage (owner decision 2026-11-10): Postgres and RustFS are centrally managed by the
-# `infrastructure` stack (repo nasinfra) and reached over the external `nasinfra` network:
-#   - database: own role + database `simulizi` in the shared Postgres 18
-#     (add `simulizi` to nasinfra APP_DATABASES and set SIMULIZI_PASSWORD; db-provision does the rest)
-#   - media:    bucket `simulizi` in the shared RustFS (S3 API at minio:9000, public via
-#     storage.tzcom.cloud, presigned URLs) -- not Cloudflare R2
-#   - jobs:     BullMQ on the shared Redis; RabbitMQ is not used
+# Storage: Postgres and RustFS are centrally managed by the `infrastructure`
+# stack (repo nasinfra) and reached over the external `nasinfra` network:
+#   - database: role + database `simulizi` in the shared Postgres 18
+#   - media:    bucket `simulizi` in the shared RustFS (S3 at minio:9000) -- phase 1b
+#   - jobs:     the release sweep runs inside the API (one process, one minute)
 #
-# Port plan (host ports already taken on the NAS: 3000 familia-api, 3001 flowengine-api,
-# 3002 flowengine-web, 3006 hazina, 3007 kikoba, 5050 pgadmin, 8080 familia-web,
-# 9000/8000/9444 portainer, 9100/9101 rustfs, 9443/9999 UGREEN UI, 5432/6379 native):
-#   web (nginx, SPA)              -> host ${WEB_PORT:-3008}, public simulizi.tzcom.cloud
-#   api (NestJS, listens on 3000) -> host ${API_PORT:-3009}, public simulizi-api.tzcom.cloud
-# Decision 2026-11-10: the API has its own hostname (familia pattern) because the Flutter app
-# talks to it directly; web calls it cross-origin, so the API must set CORS_ORIGINS to
-# https://simulizi.tzcom.cloud. Cloudflare ingress: simulizi -> http://<nas>:3008,
-# simulizi-api -> http://<nas>:3009.
+# Ports (see .claude/CLAUDE.md port map): web 3008 -> simulizi.tzcom.cloud,
+# api 3009 -> simulizi-api.tzcom.cloud. Every service has an explicit restart:,
+# healthchecks probe 127.0.0.1, and nothing uses a relative bind mount.
 
-services: {}
+services:
+  api:
+    build: ./api
+    container_name: simulizi-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: "3000"
+      # Shared Postgres; DB_PASSWORD must equal nasinfra's SIMULIZI_PASSWORD.
+      DATABASE_URL: postgresql://simulizi:${DB_PASSWORD:?DB_PASSWORD must be nasinfra's SIMULIZI_PASSWORD}@postgres:5432/simulizi
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?required}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-30d}
+      # The web app is on another hostname and calls the API cross-origin.
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://simulizi.tzcom.cloud}
+      PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:-https://simulizi.tzcom.cloud}
+    networks:
+      - default
+      - nasinfra
+    ports:
+      - "${API_PORT:-3009}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      # Prisma migrations run before the server starts.
+      start_period: 40s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  web:
+    build:
+      context: ./web
+      args:
+        # Baked into the bundle at build time; change it -> rebuild.
+        VITE_API_URL: ${PUBLIC_API_URL:-https://simulizi-api.tzcom.cloud}/api
+    container_name: simulizi-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-3008}:80"
+    healthcheck:
+      # 127.0.0.1, never localhost: nginx here listens on IPv4 only.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+networks:
+  # Created by the nasinfra stack, which must be deployed first.
+  nasinfra:
+    external: true
+    name: nasinfra
